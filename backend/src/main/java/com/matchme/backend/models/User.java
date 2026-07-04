@@ -26,7 +26,7 @@ public class User {
 
     @NotBlank(message = "Name mustn't be empty!")
     @Size(min = 2, max = 50, message = "Name must be in range from 2 to 50 characters!")
-    @Pattern(regexp = "^[a-zA-Z\\s'-]+$", message = "Name has invalid symbols")
+    @Pattern(regexp = "^[a-zA-Z\\s'-.:\b]+$", message = "Name has invalid symbols")
     private String name;
 
     @Pattern(regexp = 

@@ -1,6 +1,9 @@
 package com.matchme.backend.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 @Entity
@@ -13,11 +16,20 @@ public class UserBio {
     @OneToOne
     @MapsId
     @JoinColumn(name = "user_id")
+    @JsonIgnore
     private User user;
 
-    private String interestInterests;
+    @Pattern(regexp = "^[a-zA-Z\\s',.-:]+$", message = "Invalid information about interests")
+    private String interests;
+
+    @Pattern(regexp = "^[a-zA-Z\\s',.-]+$", message = "Invalid infromation about favorite food")
     private String favoriteFood;
+
+    @Pattern(regexp = "^[a-zA-Z\\s',.-:]+$", message = "Invalid information about favorite music")
     private String favoriteMusic;
+
     private boolean likesLongWalks;
+
+    @Pattern(regexp = "^[a-zA-Z\\s',.-]+$", message = "Invalid information about searching")
     private String lookingFor;
 }
