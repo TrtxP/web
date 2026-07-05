@@ -31,9 +31,9 @@ Getting Started
 1. Clone the Repository
 First, clone the project repository from Gitea using the following command:
 
-git clone [https://gitea.kood.tech/illyacherepanov/match-me.git](https://gitea.kood.tech/illyacherepanov/match-me.git)<br>
+git clone [https://gitea.kood.tech/illyacherepanov/web.git](https://gitea.kood.tech/illyacherepanov/web.git)<br>
 ```
-cd match-me
+cd web
 ```
 
 2. Installation
