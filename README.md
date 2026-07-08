@@ -8,7 +8,7 @@ This repository contains the full-stack source code for the **Match-Me** web app
 
 Before you begin, ensure you have the following installed on your local machine:
 
-* **Java 17+** (or your current JDK version)
+* **Java 21+** (or your current JDK version)
 * **Maven**
 * **Node.js** (LTS version recommended) & **npm**
 * **ngrok Agent** (v3.x.x)
