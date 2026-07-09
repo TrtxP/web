@@ -6,12 +6,10 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.matchme.backend.models.Connection;
 import com.matchme.backend.models.ConnectionStatus;
 
-@Repository
 public interface ConnectionRepository extends JpaRepository<Connection, Long> {
 
     // Знайти будь-який запис між двома користувачами (в будь-якому напрямку)

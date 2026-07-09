@@ -13,6 +13,9 @@ Before you begin, ensure you have the following installed on your local machine:
 * **Node.js** (LTS version recommended) & **npm**
 * **ngrok Agent** (v3.x.x)
 
+* **PostgreSQL** (recommended v12+)
+* **Postman** (or another API client) for testing REST endpoints and WebSocket connections
+
 ---
 
 ## Project Structure
@@ -74,3 +77,45 @@ ngrok config add-authtoken <your_auth_token>
 ```
 
 ***Note: The ngrok proxy must be running if you want to test and launch the web application on mobile gadgets such as smartphones and tablets.***
+
+---
+
+## PostgreSQL setup
+
+1. Install PostgreSQL (https://www.postgresql.org/download/) and create a database and user for the application. Example using psql:
+
+```
+createuser matchme_user -P    # follow prompts to set password
+createdb matchme_db -O matchme_user
+```
+
+2. Configure Spring Boot to use the database. In backend/src/main/resources/application.properties (or application.yml) set:
+
+```
+spring.datasource.url=jdbc:postgresql://localhost:5432/matchme_db
+spring.datasource.username=matchme_user
+spring.datasource.password=<your_password>
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+```
+
+3. Start the backend. Spring Boot will connect to PostgreSQL on startup. Check logs for successful connection.
+
+---
+
+## Testing endpoints and WebSocket with Postman
+
+1. REST endpoints
+
+- Open Postman and create a new Request. Use the backend base URL (default http://localhost:8080) and the appropriate path (for example, /api/auth/login or /api/users).
+- Set method (GET/POST/PUT/DELETE), headers (Content-Type: application/json) and body as JSON when required. Send and inspect status, headers, and response JSON.
+
+2. WebSocket (Spring Boot)
+
+- In Postman, create a new WebSocket request (select "WebSocket" tab).
+- Use the backend WS URL, for example: ws://localhost:8080/ws (adjust path according to your app's configuration).
+- Connect, then send a text message matching your server's expected payload (usually JSON). Watch incoming messages in the Postman Messages panel.
+
+Notes:
+- If your Spring Boot app secures endpoints (JWT, sessions), obtain an auth token via REST login and include it in headers (Authorization: Bearer <token>) for REST requests. For WebSocket, include the token according to your socket handshake (e.g., query param ?access_token=... or Sec-WebSocket-Protocol header) depending on server implementation.
+- When testing over ngrok, replace localhost with the forwarded ngrok URL (https://xxxx.ngrok.io) and use wss:// for secure WebSocket connections.
