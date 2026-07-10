@@ -43,6 +43,7 @@ public class RecommendationService {
         this.connectionRepository = connectionRepository;
     }
 
+    @SuppressWarnings("null")
     public List<Long> getRecommendations(Long userId) {
         UserProfile myProfile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,

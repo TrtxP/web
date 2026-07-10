@@ -1,32 +1,34 @@
 package com.matchme.backend.config;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Тимчасовий провайдер поточного користувача (до впровадження JWT). Читає id з
- * заголовка
- * TODO: замінити на реальне визначення користувача з JWT
- * (SecurityContextHolder),
- * коли буде реалізована автентифікація. Зараз використовується заголовок
- * X-User-Id, щоб /me, /recommendations, /connections могли працювати
- * і бути легко протестовані, поки JWT-фільтр не додано.
+ * Визначає id поточного автентифікованого користувача з JWT, який поклав
+ * у SecurityContext
+ * {@code com.matchme.backend.security.JwtAuthenticationFilter}.
+ *
+ * Метод і далі приймає HttpServletRequest заради сумісності з контролерами,
+ * які вже викликають getCurrentUserId(request) — сам параметр більше не
+ * використовується, бо userId тепер приходить з перевіреного токена, а не
+ * з довільного заголовка.
  */
 @Component
 public class CurrentUserProvider {
 
     public Long getCurrentUserId(HttpServletRequest request) {
-        String header = request.getHeader("X-User-Id");
-        if (header == null || header.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Не авторизовано: відсутній X-User-Id");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof Long)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Не авторизовано: відсутній дійсний токен");
         }
-        try {
-            return Long.parseLong(header);
-        } catch (NumberFormatException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Некоректний X-User-Id");
-        }
+
+        return (Long) authentication.getPrincipal();
     }
 }

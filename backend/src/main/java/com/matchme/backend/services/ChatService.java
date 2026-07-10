@@ -6,7 +6,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.matchme.backend.models.Chat;
 import com.matchme.backend.models.ChatMessage;
-import com.matchme.backend.models.Connection;
 import com.matchme.backend.models.ConnectionStatus;
 import com.matchme.backend.models.User;
 import com.matchme.backend.repositories.ChatMessageRepository;
@@ -35,10 +34,10 @@ public class ChatService {
     // Отримати (або створити) чат між двома з'єднаними користувачами.
     // Тільки один чат може існувати між парою користувачів.
     public Chat getOrCreateChat(Long userIdA, Long userIdB) {
-        Connection connection = connectionRepository.findBetweenUsers(userIdA, userIdB)
-                .filter(c -> c.getStatus() == ConnectionStatus.ACCEPTED)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Чат доступний лише для з'єднаних користувачів"));
+        connectionRepository.findBetweenUsers(userIdA, userIdB)
+            .filter(c -> c.getStatus() == ConnectionStatus.ACCEPTED)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "Чат доступний лише для з'єднаних користувачів"));
 
         return chatRepository.findBetweenUsers(userIdA, userIdB)
                 .orElseGet(() -> {

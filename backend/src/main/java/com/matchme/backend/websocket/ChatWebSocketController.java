@@ -1,5 +1,7 @@
 package com.matchme.backend.websocket;
 
+import java.security.Principal;
+
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
@@ -22,22 +24,24 @@ public class ChatWebSocketController {
     }
 
     // Клієнт надсилає на /app/chat.send
+    // senderId визначається виключно з автентифікованого Principal (JWT),
+    // а не з тіла повідомлення — інакше клієнт міг би підписуватись чужим ім'ям.
     @MessageMapping("/chat.send")
-    public void sendMessage(ChatMessageDTO incoming) {
-        ChatMessage saved = chatService.sendMessage(incoming.getChatId(), incoming.getSenderId(),
-                incoming.getContent());
+    public void sendMessage(ChatMessageDTO incoming, Principal principal) {
+        Long senderId = Long.parseLong(principal.getName());
+
+        ChatMessage saved = chatService.sendMessage(incoming.getChatId(), senderId, incoming.getContent());
         Chat chat = saved.getChat();
 
         ChatMessageDTO payload = new ChatMessageDTO(
                 chat.getId(),
-                incoming.getSenderId(),
-                chatService.getOtherParticipantId(chat, incoming.getSenderId()),
+                senderId,
+                chatService.getOtherParticipantId(chat, senderId),
                 saved.getContent(),
                 saved.getSentAt());
 
         // Повідомлення надсилається обом учасникам:
-        // - конкретному отримувачу в особисту чергу (для оновлення списку
-        // чатів/непрочитаних)
+        // - конкретному отримувачу в особисту чергу (для оновлення списку чатів/непрочитаних)
         // - в топік чату (щоб миттєво з'явилось у відкритому вікні чату в обох)
         messagingTemplate.convertAndSendToUser(String.valueOf(payload.getReceiverId()), "/queue/messages", payload);
         messagingTemplate.convertAndSend("/topic/chat." + chat.getId(), payload);
@@ -45,7 +49,12 @@ public class ChatWebSocketController {
 
     // Клієнт надсилає на /app/chat.typing, коли користувач набирає текст
     @MessageMapping("/chat.typing")
-    public void typing(TypingIndicatorDTO indicator) {
-        messagingTemplate.convertAndSend("/topic/chat." + indicator.getChatId() + ".typing", indicator);
+    public void typing(TypingIndicatorDTO indicator, Principal principal) {
+        // userId в індикаторі теж перезаписуємо реальним відправником
+        TypingIndicatorDTO safeIndicator = new TypingIndicatorDTO(
+                indicator.getChatId(),
+                Long.parseLong(principal.getName()),
+                indicator.isTyping());
+        messagingTemplate.convertAndSend("/topic/chat." + safeIndicator.getChatId() + ".typing", safeIndicator);
     }
 }

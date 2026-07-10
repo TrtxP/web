@@ -87,7 +87,7 @@ public class UserProfileService {
         }
 
         if (updatedFields.getGender() != null) {
-            existingProfile.setAge(updatedFields.getAge());
+            existingProfile.setGender(updatedFields.getGender());
         }
 
         return userProfileRepository.save(existingProfile);
