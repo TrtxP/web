@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,8 +24,9 @@ public class UserBio {
     @JsonIgnore
     private User user;
 
+    @Size(min = 1, max = 4, message = "Too many interests")
     @Pattern(regexp = "^[a-zA-Z\\s',.-:]+$", message = "Invalid information about interests")
-    private String interests;
+    private String[] interests;
 
     @Pattern(regexp = "^[a-zA-Z\\s',.-]+$", message = "Invalid infromation about favorite food")
     private String favoriteFood;

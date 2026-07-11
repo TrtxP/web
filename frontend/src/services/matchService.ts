@@ -38,10 +38,10 @@ export const matchService = {
     return res.data.map(item => item.id);
   },
   connectWithUser: async (targetId: number) => {
-    return (await api.post(`/connections${targetId}`)).data;
+    return (await api.post(`/connections/${targetId}`)).data;
   },
   dismissRecommendation: async (targetId: number) => {
-    return (await api.post(`/recommendations/${targetId}`)).data;
+    return (await api.delete(`/recommendations/${targetId}`)).data;
   },
   updateProfile: async (name: string, profile: UserProfileDTO, bio: UserBioDTO) => {
     await Promise.all([
@@ -50,6 +50,7 @@ export const matchService = {
       api.put('/me/bio', bio)
     ]);
   },
+
   getFullRecommendations: async (): Promise<AggregatedProfile[]> => {
     try {
       const ids = await matchService.getRecommendations()

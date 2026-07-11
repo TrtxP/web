@@ -24,7 +24,7 @@ export interface UserProfileDTO {
 
 export interface UserBioDTO {
   id: number;
-  interests: string;
+  interests: string[];
   favoriteFood: string;
   favoriteMusic: string;
   likesLongWalks: boolean;

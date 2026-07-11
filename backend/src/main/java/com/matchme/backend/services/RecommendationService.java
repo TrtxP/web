@@ -103,7 +103,7 @@ public class RecommendationService {
     private int computeScore(UserBio myBio, UserBio candidateBio, UserProfile myProfile, UserProfile candidateProfile) {
         int score = 0;
 
-        if (equalsIgnoreCaseSafe(myBio.getInterests(), candidateBio.getInterests())) {
+        if (equalsIgnoreCaseSafeInterests(myBio.getInterests(), candidateBio.getInterests())) {
             score += 2; // інтереси — найбільш вагомий фактор
         }
 
@@ -135,6 +135,26 @@ public class RecommendationService {
 
     private boolean equalsIgnoreCaseSafe(String a, String b) {
         return a != null && b != null && a.equalsIgnoreCase(b);
+    }
+
+    private boolean equalsIgnoreCaseSafeInterests(String[] a, String[] b) {
+        if (a == null || b == null || a.length != b.length) {
+            return false;
+        }
+
+        for (int i = 0; i < a.length; i++) {
+            String first = a[i];
+            String second = b[i];
+            if (first == null) {
+                if (second != null) {
+                    return false;
+                }
+            } else if (!first.equalsIgnoreCase(second)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private record ScoredCandidate(Long userId, int score) {
