@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.matchme.backend.dto.UserBioPatchDTO;
 import com.matchme.backend.models.User;
 import com.matchme.backend.models.UserBio;
 import com.matchme.backend.repositories.UserBioRepository;
@@ -58,7 +59,13 @@ public class UserBioService {
         return userBioRepository.save(existingBio);
     }
 
-    public UserBio updateBioPartial(Long userId, UserBio updatedFields) {
+    /**
+     * Часткове оновлення. На відміну від попередньої версії, приймає
+     * UserBioPatchDTO (а не entity UserBio) саме через те, що likesLongWalks
+     * там — Boolean, а не примітивний boolean. Це дозволяє коректно
+     * розрізнити "поле не передане" (null) від "явно встановлено false".
+     */
+    public UserBio updateBioPartial(Long userId, UserBioPatchDTO updatedFields) {
         Optional<UserBio> optionalBio = userBioRepository.findById(userId);
 
         if (optionalBio.isEmpty()) {
@@ -68,7 +75,7 @@ public class UserBioService {
         UserBio existingBio = optionalBio.get();
 
         if (updatedFields.getInterests() != null) {
-            existingBio.setInterests(updatedFields.getInterests());
+            existingBio.setInterests(new String[] { updatedFields.getInterests() });
         }
 
         if (updatedFields.getFavoriteFood() != null) {
@@ -79,8 +86,11 @@ public class UserBioService {
             existingBio.setFavoriteMusic(updatedFields.getFavoriteMusic());
         }
 
-        if (updatedFields.isLikesLongWalks()) {
-            existingBio.setLikesLongWalks(updatedFields.isLikesLongWalks());
+        // Тепер коректно: false так само застосовується, як і true,
+        // бо перевіряємо саме "чи поле було передане" (!= null), а не саму
+        // булеву семантику значення.
+        if (updatedFields.getLikesLongWalks() != null) {
+            existingBio.setLikesLongWalks(updatedFields.getLikesLongWalks());
         }
 
         if (updatedFields.getLookingFor() != null) {

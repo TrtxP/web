@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.matchme.backend.dto.UserBioPatchDTO;
 import com.matchme.backend.dto.UserBioResponseDTO;
 import com.matchme.backend.models.UserBio;
 import com.matchme.backend.services.UserBioService;
@@ -53,7 +54,7 @@ public class UserBioController {
     }
 
     @PatchMapping("/{id}/bio")
-    public ResponseEntity<?> updateUserBioPartial(@PathVariable Long id, @RequestBody UserBio updatedFields) {
+    public ResponseEntity<?> updateUserBioPartial(@PathVariable Long id, @RequestBody UserBioPatchDTO updatedFields) {
         UserBio existingUserBio = userBioService.updateBioPartial(id, updatedFields);
         return ResponseEntity.status(HttpStatus.OK).body(existingUserBio);
     }
