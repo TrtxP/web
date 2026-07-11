@@ -89,6 +89,30 @@ createuser matchme_user -P    # follow prompts to set password
 createdb matchme_db -O matchme_user
 ```
 
+## Docker setup
+
+If you want to run PostgreSQL in Docker instead of installing it locally, use the project `docker-compose.yml` configuration. The compose file should expose the PostgreSQL host port and map it to the container port, for example:
+
+```
+services:
+  postgres:
+    image: postgres:15
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: matchme_db
+      POSTGRES_USER: matchme_user
+      POSTGRES_PASSWORD: your_password
+```
+
+Start the service with:
+
+```
+docker compose up -d
+```
+
+Then configure Spring Boot to use the same host port as defined in `docker-compose.yml`. For the example above, use `5432` in the datasource URL.
+
 2. Configure Spring Boot to use the database. In backend/src/main/resources/application.properties (or application.yml) set:
 
 ```
