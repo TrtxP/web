@@ -1,4 +1,6 @@
 TODO: Завдання для вас: зв'язати backend частину 
 RecommendationController та ConnectionController 
 Java класів з matchService.ts з backned директорії, 
-використовуючи також інтерфеси з файлу types.ts з frontend директорії 
+використовуючи також інтерфеси з файлу types.ts з frontend директорії.
+Та написати код відображення профілю користувача у файлі Profile.tsx
+за наведеним TODO коментом
