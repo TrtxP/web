@@ -1,0 +1,4 @@
+TODO: Завдання для вас: зв'язати backend частину 
+RecommendationController та ConnectionController 
+Java класів з matchService.ts з backned директорії, 
+використовуючи також інтерфеси з файлу types.ts з frontend директорії 
