@@ -1,5 +1,5 @@
 import React from 'react';
-import { AggregatedProfile } from '../services/matchService';
+import type { AggregatedProfile } from '../services/matchService';
 
 interface UserCardProps {
   profile: AggregatedProfile;

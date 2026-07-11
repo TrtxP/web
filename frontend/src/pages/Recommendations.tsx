@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { matchService, resolveProfileData, AggregatedProfile } from '../services/matchService';
+import { matchService, resolveProfileData, type AggregatedProfile } from '../services/matchService';
 
 export const Recommendations: React.FC = () => {
   const [profiles, setProfiles] = useState<AggregatedProfile[]>([]);
@@ -22,12 +22,12 @@ export const Recommendations: React.FC = () => {
     fetchRecommendations();
   }, []);
 
-  const handleConnect = async (id: string) => {
+  const handleConnect = async (id: number) => {
     await matchService.connectWithUser(id);
     setProfiles(prev => prev.filter(p => p.id !== id));
   };
 
-  const handleDismiss = async (id: string) => {
+  const handleDismiss = async (id: number) => {
     await matchService.dismissRecommendation(id);
     setProfiles(prev => prev.filter(p => p.id !== id));
   };
@@ -49,15 +49,11 @@ export const Recommendations: React.FC = () => {
             <div key={profile.id} className="ui-card user-card">
               
               <div className="avatar-banner">
-                {profile.profilePicture ? (
-                  <img src={profile.profilePicture} alt={profile.name} />
+                {profile.profilePictureUrl ? (
+                  <img src={profile.profilePictureUrl} alt={profile.name} />
                 ) : (
                   '👤'
                 )}
-                <div className="badge-status">
-                  <span className={`dot ${profile.isOnline ? '' : 'offline'}`} />
-                  {profile.isOnline ? 'Online' : 'Offline'}
-                </div>
               </div>
 
               <div className="card-content">
@@ -69,13 +65,7 @@ export const Recommendations: React.FC = () => {
                 <div className="tags-section">
                   <h4>Interests</h4>
                   <div className="tags-wrapper">
-                    {profile.interests && profile.interests.length > 0 ? (
-                      profile.interests.map(interest => (
-                        <span key={interest} className="tag-item">{interest}</span>
-                      ))
-                    ) : (
-                      <span style={{ fontSize: '13px', color: 'var(--text)', fontStyle: 'italic' }}>None specified</span>
-                    )}
+                    <h3>Not implemented yet</h3>
                   </div>
                 </div>
               </div>

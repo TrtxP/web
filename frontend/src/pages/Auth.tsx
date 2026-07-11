@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../services/matchService';
 
 export const Auth: React.FC = () => {
-  const navigate = useNavigate();
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,6 +21,34 @@ export const Auth: React.FC = () => {
     return true;
   };
 
+  const getErrorMessage = (error: unknown) => {
+    const defaultMessage = 'Authentication failed. Please try again.';
+
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'response' in error &&
+      typeof (error as { response?: unknown }).response === 'object' &&
+      (error as { response: { data?: unknown } }).response !== null
+    ) {
+      const data = (error as { response: { data?: unknown } }).response.data;
+      if (
+        typeof data === 'object' &&
+        data !== null &&
+        'message' in data &&
+        typeof (data as { message?: unknown }).message === 'string'
+      ) {
+        return (data as { message: string }).message;
+      }
+    }
+
+    return defaultMessage;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -35,8 +61,8 @@ export const Auth: React.FC = () => {
       const res = await api.post<{ token: string }>(endpoint, { email, password });
       localStorage.setItem('token', res.data.token);
       window.location.href = '/recommendations';
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Authentication failed. Please try again.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
