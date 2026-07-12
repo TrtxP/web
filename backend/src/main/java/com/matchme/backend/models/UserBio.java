@@ -24,9 +24,8 @@ public class UserBio {
     @JsonIgnore
     private User user;
 
-    @Size(min = 1, max = 4, message = "Too many interests")
-    @Pattern(regexp = "^[a-zA-Z\\s',.-:]+$", message = "Invalid information about interests")
-    private String[] interests;
+    @Size(min = 1, max = 5, message = "Too many interests")
+    private String @Pattern(regexp = "^[a-zA-Z\\s',.-:]+$", message = "Invalid information about interests") [] interests;
 
     @Pattern(regexp = "^[a-zA-Z\\s',.-]+$", message = "Invalid infromation about favorite food")
     private String favoriteFood;

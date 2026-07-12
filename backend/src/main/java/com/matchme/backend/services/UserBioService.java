@@ -75,7 +75,7 @@ public class UserBioService {
         UserBio existingBio = optionalBio.get();
 
         if (updatedFields.getInterests() != null) {
-            existingBio.setInterests(new String[] { updatedFields.getInterests() });
+            existingBio.setInterests(updatedFields.getInterests());
         }
 
         if (updatedFields.getFavoriteFood() != null) {

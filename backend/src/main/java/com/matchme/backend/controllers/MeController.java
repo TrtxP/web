@@ -136,7 +136,7 @@ public class MeController {
 
         UserBioResponseDTO dto = new UserBioResponseDTO();
         dto.setId(bio.getUserId());
-        dto.setInsterests(bio.getInterests());
+        dto.setInterests(bio.getInterests());
         dto.setFavoriteFood(bio.getFavoriteFood());
         dto.setFavoriteMusic(bio.getFavoriteMusic());
         dto.setLikesLongWalks(bio.isLikesLongWalks());

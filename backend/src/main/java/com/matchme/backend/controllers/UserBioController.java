@@ -33,7 +33,7 @@ public class UserBioController {
         UserBio userBio = userBioService.getBioInfo(id);
         UserBioResponseDTO userBioResponseDTO = new UserBioResponseDTO();
         userBioResponseDTO.setId(userBio.getUserId());
-        userBioResponseDTO.setInsterests(userBio.getInterests());
+        userBioResponseDTO.setInterests(userBio.getInterests());
         userBioResponseDTO.setFavoriteFood(userBio.getFavoriteFood());
         userBioResponseDTO.setFavoriteMusic(userBio.getFavoriteMusic());
         userBioResponseDTO.setLikesLongWalks(userBio.isLikesLongWalks());

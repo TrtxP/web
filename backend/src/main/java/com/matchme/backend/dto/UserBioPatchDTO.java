@@ -13,7 +13,7 @@ import lombok.Data;
  */
 @Data
 public class UserBioPatchDTO {
-    private String interests;
+    private String[] interests;
     private String favoriteFood;
     private String favoriteMusic;
     private Boolean likesLongWalks;

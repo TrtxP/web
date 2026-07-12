@@ -6,6 +6,8 @@ import com.matchme.backend.models.UserProfile;
 import com.matchme.backend.repositories.UserBioRepository;
 import com.matchme.backend.repositories.UserProfileRepository;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -27,15 +29,13 @@ public class DataInitializer {
     // не збігається за локацією навіть на 100 користувачах. Обмежений список
     // гарантує реальні перетини й дозволяє продемонструвати рекомендації.
     private static final List<String> CITIES = List.of(
-            "Kyiv", "Lviv", "Odesa", "Kharkiv", "Dnipro", "Poltava", "Chernihiv", "Vinnytsia"
-    );
+            "Kyiv", "Lviv", "Odesa", "Kharkiv", "Dnipro", "Poltava", "Chernihiv", "Vinnytsia");
 
     @Bean
-    public CommandLineRunner initData(UserRepository userRepository, 
-                                    UserProfileRepository userProfileRepository,
-                                    UserBioRepository userBioRepository,
-                                    PasswordEncoder passwordEncoder) 
-    {
+    public CommandLineRunner initData(UserRepository userRepository,
+            UserProfileRepository userProfileRepository,
+            UserBioRepository userBioRepository,
+            PasswordEncoder passwordEncoder) {
         return args -> {
             if (userRepository.count() == 0) {
                 Faker faker = new Faker(Locale.ENGLISH);
@@ -53,7 +53,7 @@ public class DataInitializer {
 
                     UserProfile userProfile = new UserProfile();
                     userProfile.setUser(savedUser);
-                    userProfile.setAboutMe(faker.lorem().sentence(10));
+                    userProfile.setAboutMe(faker.lorem().sentence(3));
                     userProfile.setCity(faker.options().option(cityOptions));
                     userProfile.setAge(faker.number().numberBetween(18, 50));
                     userProfile.setGender(faker.options().option("male", "female"));
@@ -62,9 +62,16 @@ public class DataInitializer {
 
                     UserBio userBio = new UserBio();
                     userBio.setUser(savedUser);
-                    userBio.setInterests(new String[]{faker.options().option("Music", "Cinema", "Books", "Sports", "Coding", "Gaming", "Cooking", "Travel")});
-                    userBio.setFavoriteFood(faker.food().dish());
-                    userBio.setFavoriteMusic(faker.music().genre());
+
+                    // Виводимо рандомно інтереси від 2 до 5
+                    List<String> interests = new ArrayList<>(List.of("Music", "Cinema", "Books", "Sports", "Coding", "Gaming", "Cooking", "Travel"));
+                    Collections.shuffle(interests);
+                    int randomSize = faker.number().numberBetween(3, 5);
+                    String[] selectedInterests = interests.subList(0, randomSize).toArray(new String[0]);
+                    userBio.setInterests(selectedInterests);
+
+                    userBio.setFavoriteFood(faker.options().option("Pizza", "Burger", "Sushi", "Pasta", "Salad", "Steak"));
+                    userBio.setFavoriteMusic(faker.options().option("Rock", "Pop", "Jazz", "Hip Hop", "Classical", "Electronic"));
                     userBio.setLikesLongWalks(faker.bool().bool());
                     userBio.setLookingFor(faker.options().option("Friends", "Relationships"));
 

@@ -20,6 +20,7 @@ export interface UserDTO {
 
 export interface UserProfileDTO {
   aboutMe: string;
+  isOnline: boolean;
 }
 
 export interface UserBioDTO {
@@ -40,7 +41,7 @@ export interface ChatMessageDTO {
 }
 
 export interface TypingIndicatorDTO {
-    chatId: number,
-    userId: number,
-    typing: boolean
+  chatId: number;
+  userId: number;
+  typing: boolean;
 }
