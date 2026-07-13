@@ -1,3 +1,4 @@
+import type { AggregatedProfile } from "./services/matchService";
 export interface IdResponseDTO {
   id: number;
 }
@@ -47,4 +48,14 @@ export interface TypingIndicatorDTO {
   chatId: number;
   userId: number;
   typing: boolean;
+}
+
+interface FullUserInformation {
+  info: AggregatedProfile;
+  profile: AggregatedProfile;
+  bio: AggregatedProfile;
+}
+
+export interface RecommendationCardProps {
+  user: FullUserInformation;
 }

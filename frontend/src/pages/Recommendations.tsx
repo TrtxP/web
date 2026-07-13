@@ -4,10 +4,13 @@ import {
   resolveProfileData,
   type AggregatedProfile,
 } from "../services/matchService";
+import { FullProfileModal } from "../components/FullProfileModal";
 
 export const Recommendations: React.FC = () => {
   const [profiles, setProfiles] = useState<AggregatedProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProfile, setSelectedProfile] =
+    useState<AggregatedProfile | null>(null);
 
   useEffect(() => {
     const fetchRecommendations = async () => {
@@ -66,7 +69,8 @@ export const Recommendations: React.FC = () => {
           {profiles.map((profile) => (
             <div
               key={profile.id}
-              className="bg-white rounded-2xl shadow-md border border-gray-100 p-5 flex flex-col items-center text-center transition-transform hover:-translate-y-1"
+              onClick={() => setSelectedProfile(profile)}
+              className="bg-white rounded-2xl shadow-md border border-gray-100 p-5 flex flex-col items-center text-center transition-transform hover:-translate-y-1 cursor-pointer"
             >
               <div className="relative w-28 h-28 mb-4">
                 {profile.profilePictureUrl ? (
@@ -84,12 +88,13 @@ export const Recommendations: React.FC = () => {
                 <span
                   className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white ${profile.isOnline ? "bg-green-500" : "bg-gray-400"}`}
                   title={profile.isOnline ? "Online" : "Offline"}
-                >
-                </span>
+                ></span>
               </div>
 
               <div className="mb-4 w-full">
-                <h3 className="text-lg font-bold text-gray-900 line-clamp-1">{profile.name}</h3>
+                <h3 className="text-lg font-bold text-gray-900 line-clamp-1">
+                  {profile.name}
+                </h3>
                 <p className="text-sm text-gray-500 italic mt-1 line-clamp-2">
                   "
                   {profile.aboutMe ||
@@ -132,6 +137,13 @@ export const Recommendations: React.FC = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {selectedProfile && (
+        <FullProfileModal
+          profile={selectedProfile}
+          onClose={() => setSelectedProfile(null)}
+        />
       )}
     </div>
   );
