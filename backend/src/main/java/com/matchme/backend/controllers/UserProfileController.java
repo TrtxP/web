@@ -32,6 +32,9 @@ public class UserProfileController {
         UserProfile userProfile = userProfileService.getProfileInfo(id);
         UserProfileResponseDTO userProfileResponseDTO = new UserProfileResponseDTO();
         userProfileResponseDTO.setAboutMe(userProfile.getAboutMe());
+        userProfileResponseDTO.setCity(userProfile.getCity());
+        userProfileResponseDTO.setAge(userProfile.getAge());
+        userProfileResponseDTO.setGender(userProfile.getGender());
         return ResponseEntity.status(HttpStatus.OK).body(userProfileResponseDTO);
     }
 

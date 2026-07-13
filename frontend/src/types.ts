@@ -21,6 +21,9 @@ export interface UserDTO {
 export interface UserProfileDTO {
   aboutMe: string;
   isOnline: boolean;
+  city: string;
+  age: number;
+  gender: string;
 }
 
 export interface UserBioDTO {

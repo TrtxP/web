@@ -47,10 +47,8 @@ export const Recommendations: React.FC = () => {
   }
 
   return (
-    <div style={{ flexGrow: 1 }}>
-      <h1 style={{ textAlign: "left", paddingLeft: "32px", marginBottom: "0" }}>
-        Recommendations
-      </h1>
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <h2 className="text-2xl font-bold mb-6 text-gray-800">Recommendations</h2>
       {profiles.length === 0 ? (
         <div
           style={{
@@ -64,66 +62,69 @@ export const Recommendations: React.FC = () => {
           No new connections within your targeted location parameter windows.
         </div>
       ) : (
-        <div className="grid-cards">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {profiles.map((profile) => (
-            <div key={profile.id} className="ui-card user-card">
-              <div className="avatar-banner">
+            <div
+              key={profile.id}
+              className="bg-white rounded-2xl shadow-md border border-gray-100 p-5 flex flex-col items-center text-center transition-transform hover:-translate-y-1"
+            >
+              <div className="relative w-28 h-28 mb-4">
                 {profile.profilePictureUrl ? (
-                  <img src={profile.profilePictureUrl} alt={profile.name} />
+                  <img
+                    src={profile.profilePictureUrl}
+                    alt={profile.name}
+                    className="w-full h-full object-cover rounded-full border-2 border-white shadow-sm"
+                  />
                 ) : (
-                  "👤"
+                  <div className="w-full h-full rounded-full bg-gray-100 flex items-center justify-center text-4xl">
+                    👤
+                  </div>
                 )}
+
+                <span
+                  className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white ${profile.isOnline ? "bg-green-500" : "bg-gray-400"}`}
+                  title={profile.isOnline ? "Online" : "Offline"}
+                >
+                </span>
               </div>
 
-              <div className="card-content">
-                <h3>{profile.name}</h3>
-                <div className="badge-status">
-                  <span
-                    className={`dot ${profile.isOnline ? "" : "offline"}`}
-                  />
-                  {profile.isOnline ? "Online" : "Offline"}
-                </div>
-                <p className="biography">
+              <div className="mb-4 w-full">
+                <h3 className="text-lg font-bold text-gray-900 line-clamp-1">{profile.name}</h3>
+                <p className="text-sm text-gray-500 italic mt-1 line-clamp-2">
                   "
                   {profile.aboutMe ||
                     "No customized description indexed by this user asset."}
                   "
                 </p>
+              </div>
 
-                <div className="tags-section">
-                  <h4>Interests</h4>
-                  <div className="tags-wrapper">
-                    {profile.interests && profile.interests.length > 0 ? (
-                      profile.interests.map((interest) => (
-                        <span key={interest} className="tag-item">
-                          {interest}
-                        </span>
-                      ))
-                    ) : (
+              <div className="w-full mb-5 text-left">
+                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  Interests
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.interests &&
+                    profile.interests.map((interest, index) => (
                       <span
-                        style={{
-                          fontSize: "13px",
-                          color: "var(--text)",
-                          fontStyle: "italic",
-                        }}
+                        key={index}
+                        className="bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-md"
                       >
-                        None specified
+                        {interest}
                       </span>
-                    )}
-                  </div>
+                    ))}
                 </div>
               </div>
 
-              <div className="card-actions">
+              <div className="flex gap-3 w-full mt-auto">
                 <button
                   onClick={() => handleDismiss(profile.id)}
-                  className="btn-dismiss"
+                  className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-2 rounded text-sm transition-colors"
                 >
                   Dismiss
                 </button>
                 <button
                   onClick={() => handleConnect(profile.id)}
-                  className="btn-connect"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded text-sm transition-colors"
                 >
                   Connect
                 </button>

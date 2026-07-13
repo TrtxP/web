@@ -96,6 +96,9 @@ public class MeController {
 
         UserProfileResponseDTO dto = new UserProfileResponseDTO();
         dto.setAboutMe(profile.getAboutMe());
+        dto.setCity(profile.getCity());
+        dto.setAge(profile.getAge());
+        dto.setGender(profile.getGender());
         return ResponseEntity.status(HttpStatus.OK).body(dto);
     }
 

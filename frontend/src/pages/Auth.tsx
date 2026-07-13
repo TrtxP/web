@@ -112,7 +112,7 @@ export const Auth: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-100 flex justify-center items-center text-sm disabled:opacity-50"
+            className="w-full bg-indigo-600 text-white font-bold py-3 rounded hover:bg-indigo-700 transition shadow-lg shadow-indigo-100 flex justify-center items-center text-sm disabled:opacity-50 p-5"
           >
             {loading ? 'Processing...' : isRegistering ? 'Register Account' : 'Log In'}
           </button>
