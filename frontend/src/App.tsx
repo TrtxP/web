@@ -3,7 +3,8 @@ import { Layout } from "./components/Layout"
 import { Recommendations } from "./pages/Recommendations"
 import { Auth } from "./pages/Auth"
 import { Chat } from "./pages/Chat"
-import { Profile } from "./components/Profile"
+import { Profile } from "./pages/Profile"
+import Connections from "./pages/Connections"
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Routes>
             <Route path="/login" element={<Auth />} />
             <Route path="/recommendations" element={<Recommendations />}/>
+            <Route path="/connections" element={<Connections />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<Navigate to="/recommendations" replace />} />

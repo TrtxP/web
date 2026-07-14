@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from "react";
-import {
-  matchService,
-  resolveProfileData,
-  type AggregatedProfile,
-} from "../services/matchService";
+import { matchService, resolveProfileData } from "../services/matchService";
 import { FullProfileModal } from "../components/FullProfileModal";
+import type { AggregatedProfile } from "../types";
 
 export const Recommendations: React.FC = () => {
   const [profiles, setProfiles] = useState<AggregatedProfile[]>([]);
@@ -92,7 +89,7 @@ export const Recommendations: React.FC = () => {
               </div>
 
               <div className="mb-4 w-full">
-                <h3 className="text-lg font-bold text-gray-900 line-clamp-1">
+                <h3 className="text-lg font-bold text-gray-900">
                   {profile.name}
                 </h3>
                 <p className="text-sm text-gray-500 italic mt-1 line-clamp-2">
@@ -122,13 +119,19 @@ export const Recommendations: React.FC = () => {
 
               <div className="flex gap-3 w-full mt-auto">
                 <button
-                  onClick={() => handleDismiss(profile.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDismiss(profile.id);
+                  }}
                   className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-2 rounded text-sm transition-colors"
                 >
                   Dismiss
                 </button>
                 <button
-                  onClick={() => handleConnect(profile.id)}
+                  onClick={(e) => {
+                    e.stopPropagation(); 
+                    handleConnect(profile.id);
+                  }}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded text-sm transition-colors"
                 >
                   Connect

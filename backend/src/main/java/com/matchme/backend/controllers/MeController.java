@@ -29,7 +29,6 @@ import com.matchme.backend.services.UserBioService;
 import com.matchme.backend.services.UserProfileService;
 import com.matchme.backend.services.UserService;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 /**
@@ -65,8 +64,8 @@ public class MeController {
     // ==================== /me ====================
 
     @GetMapping
-    public ResponseEntity<?> getMe(HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> getMe() {
+        Long userId = currentUserProvider.getCurrentUserId();
         User user = userService.getBaseInfo(userId);
 
         UserResponseDTO dto = new UserResponseDTO();
@@ -77,22 +76,22 @@ public class MeController {
     }
 
     @PutMapping
-    public ResponseEntity<?> updateMeFull(@RequestBody User newUser, HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> updateMeFull(@RequestBody User newUser) {
+        Long userId = currentUserProvider.getCurrentUserId();
         User existingUser = userService.updateUserFull(userId, newUser);
         return ResponseEntity.status(HttpStatus.OK).body(existingUser);
     }
 
     @PatchMapping
-    public ResponseEntity<?> updateMePartial(@RequestBody User updatedFields, HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> updateMePartial(@RequestBody User updatedFields) {
+        Long userId = currentUserProvider.getCurrentUserId();
         User existingUser = userService.updateUserPartial(userId, updatedFields);
         return ResponseEntity.status(HttpStatus.OK).body(existingUser);
     }
 
     @DeleteMapping
-    public ResponseEntity<?> deleteMe(HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> deleteMe() {
+        Long userId = currentUserProvider.getCurrentUserId();
         userService.deleteUser(userId);
         return ResponseEntity.noContent().build();
     }
@@ -100,8 +99,8 @@ public class MeController {
     // ==================== /me/profile ====================
 
     @GetMapping("/profile")
-    public ResponseEntity<?> getMyProfile(HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> getMyProfile() {
+        Long userId = currentUserProvider.getCurrentUserId();
         UserProfile profile = userProfileService.getProfileInfo(userId);
 
         UserProfileResponseDTO dto = new UserProfileResponseDTO();
@@ -113,39 +112,37 @@ public class MeController {
     }
 
     @PostMapping("/profile")
-    public ResponseEntity<?> createMyProfile(@Valid @RequestBody UserProfile profile, HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> createMyProfile(@Valid @RequestBody UserProfile profile) {
+        Long userId = currentUserProvider.getCurrentUserId();
         UserProfile saved = userProfileService.createUserProfile(userId, profile);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/profile")
-    public ResponseEntity<?> updateMyProfileFull(@RequestBody UserProfile newProfile, HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> updateMyProfileFull(@RequestBody UserProfile newProfile) {
+        Long userId = currentUserProvider.getCurrentUserId();
         UserProfile existing = userProfileService.updateProfileFull(userId, newProfile);
         return ResponseEntity.status(HttpStatus.OK).body(existing);
     }
 
     @PatchMapping("/profile")
-    public ResponseEntity<?> updateMyProfilePartial(@RequestBody UserProfile updatedFields,
-            HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> updateMyProfilePartial(@RequestBody UserProfile updatedFields) {
+        Long userId = currentUserProvider.getCurrentUserId();
         UserProfile existing = userProfileService.updateProfilePartial(userId, updatedFields);
         return ResponseEntity.status(HttpStatus.OK).body(existing);
     }
 
     @DeleteMapping("/profile")
-    public ResponseEntity<?> deleteMyProfile(HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> deleteMyProfile() {
+        Long userId = currentUserProvider.getCurrentUserId();
         userProfileService.deleteProfile(userId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/profile-picture")
     public ResponseEntity<?> uploadProfilePicture(
-            @RequestParam("file") MultipartFile file,
-            HttpServletRequest request) throws IOException {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+            @RequestParam("file") MultipartFile file) throws IOException {
+        Long userId = currentUserProvider.getCurrentUserId();
         String pictureUrl = fileStorageService.uploadUserAvatar(userId, file);
 
         // Повертаємо JSON: {"profilePictureUrl": "/uploads/profiles/..."}
@@ -154,8 +151,8 @@ public class MeController {
     }
 
     @DeleteMapping("/profile-picture")
-    public ResponseEntity<?> deleteProfilePicture(HttpServletRequest request) throws IOException {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> deleteProfilePicture() throws IOException {
+        Long userId = currentUserProvider.getCurrentUserId();
         fileStorageService.deleteUserAvatar(userId);
         return ResponseEntity.noContent().build();
     }
@@ -163,8 +160,8 @@ public class MeController {
     // ==================== /me/bio ====================
 
     @GetMapping("/bio")
-    public ResponseEntity<?> getMyBio(HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> getMyBio() {
+        Long userId = currentUserProvider.getCurrentUserId();
         UserBio bio = userBioService.getBioInfo(userId);
 
         UserBioResponseDTO dto = new UserBioResponseDTO();
@@ -178,30 +175,29 @@ public class MeController {
     }
 
     @PostMapping("/bio")
-    public ResponseEntity<?> createMyBio(@Valid @RequestBody UserBio bio, HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> createMyBio(@Valid @RequestBody UserBio bio) {
+        Long userId = currentUserProvider.getCurrentUserId();
         UserBio saved = userBioService.createUserBio(userId, bio);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/bio")
-    public ResponseEntity<?> updateMyBioFull(@RequestBody UserBio newBio, HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> updateMyBioFull(@RequestBody UserBio newBio) {
+        Long userId = currentUserProvider.getCurrentUserId();
         UserBio existing = userBioService.updateBioFull(userId, newBio);
         return ResponseEntity.status(HttpStatus.OK).body(existing);
     }
 
     @PatchMapping("/bio")
-    public ResponseEntity<?> updateMyBioPartial(@RequestBody UserBioPatchDTO updatedFields,
-            HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> updateMyBioPartial(@RequestBody UserBioPatchDTO updatedFields) {
+        Long userId = currentUserProvider.getCurrentUserId();
         UserBio existing = userBioService.updateBioPartial(userId, updatedFields);
         return ResponseEntity.status(HttpStatus.OK).body(existing);
     }
 
     @DeleteMapping("/bio")
-    public ResponseEntity<?> deleteMyBio(HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> deleteMyBio() {
+        Long userId = currentUserProvider.getCurrentUserId();
         userBioService.deleteBio(userId);
         return ResponseEntity.noContent().build();
     }

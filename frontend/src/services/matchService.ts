@@ -4,6 +4,7 @@ import type {
   UserProfileDTO,
   UserBioDTO,
   IdResponseDTO,
+  AggregatedProfile,
 } from "../types";
 
 const API_URL = "http://localhost:8080";
@@ -25,9 +26,6 @@ api.interceptors.request.use(
   },
 );
 
-export interface AggregatedProfile
-  extends UserDTO, UserProfileDTO, UserBioDTO {}
-
 // Compiles split endpoint data models securely into a single interface
 export const resolveProfileData = async (
   id: number,
@@ -38,7 +36,14 @@ export const resolveProfileData = async (
     api.get<UserBioDTO>(`/users/${id}/bio`),
   ]);
 
-  return { ...userRes.data, ...profileRes.data, ...bioRes.data };
+  return {
+    // ensure required fields from AggregatedProfile exist; provide sensible defaults
+    preferredDistance:
+      (profileRes.data as AggregatedProfile)?.preferredDistance ?? 0,
+    ...userRes.data,
+    ...profileRes.data,
+    ...bioRes.data,
+  };
 };
 
 export const matchService = {
@@ -76,6 +81,30 @@ export const matchService = {
     const res = await api.get<IdResponseDTO[]>("/connections");
     return res.data.map((item) => item.id);
   },
+  // Додати в matchService всередині types.ts / matchService.ts
+  getFullConnections: async (): Promise<AggregatedProfile[]> => {
+    try {
+      const ids = await matchService.getConnections(); // Отримуємо [4, 12...]
+
+      if (!ids || ids.length === 0) return [];
+
+      const fullProfiles = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            return await resolveProfileData(id);
+          } catch (err) {
+            console.error(`Error loading connection data for ID ${id}: ${err}`);
+            return null;
+          }
+        }),
+      );
+
+      return fullProfiles.filter((p): p is AggregatedProfile => p !== null);
+    } catch (err) {
+      console.error(`Failed to load full connections: ${err}`);
+      throw err;
+    }
+  },
   getIncomingRequests: async (): Promise<number[]> => {
     const res = await api.get<IdResponseDTO[]>("/connections/requests");
     return res.data.map((item) => item.id);
@@ -98,7 +127,13 @@ export const matchService = {
       api.get<UserProfileDTO>("/me/profile"),
       api.get<UserBioDTO>("/me/bio"),
     ]);
-    return { ...userRes.data, ...profileRes.data, ...bioRes.data };
+    return {
+      preferredDistance:
+        (profileRes.data as AggregatedProfile)?.preferredDistance ?? 0,
+      ...userRes.data,
+      ...profileRes.data,
+      ...bioRes.data,
+    };
   },
   updateProfile: async (
     name: string,

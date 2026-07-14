@@ -1,4 +1,3 @@
-import type { AggregatedProfile } from "./services/matchService";
 export interface IdResponseDTO {
   id: number;
 }
@@ -50,12 +49,23 @@ export interface TypingIndicatorDTO {
   typing: boolean;
 }
 
-interface FullUserInformation {
-  info: AggregatedProfile;
-  profile: AggregatedProfile;
-  bio: AggregatedProfile;
+export interface AggregatedProfile extends UserDTO, UserProfileDTO, UserBioDTO {
+  preferredDistance: number;
+}
+
+export interface FullUserInformation {
+  id: number;
+  info: UserDTO;
+  profile: UserProfileDTO;
+  bio: UserBioDTO;
 }
 
 export interface RecommendationCardProps {
   user: FullUserInformation;
+}
+
+export interface CitySuggestion {
+  display_name: string;
+  lat: string;
+  lon: string;
 }

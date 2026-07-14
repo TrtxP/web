@@ -28,8 +28,18 @@ public class DataInitializer {
     // міст у RecommendationService це означало б, що майже ніхто ні з ким
     // не збігається за локацією навіть на 100 користувачах. Обмежений список
     // гарантує реальні перетини й дозволяє продемонструвати рекомендації.
+
     private static final List<String> CITIES = List.of(
-            "Kyiv", "Lviv", "Odesa", "Kharkiv", "Dnipro", "Poltava", "Chernihiv", "Vinnytsia");
+            // Major cities and regional centers across Ukraine
+            "Kyiv", "Kharkiv", "Odesa", "Dnipro", "Donetsk", "Zaporizhzhia", "Lviv",
+            "Kryvyi Rih", "Mykolaiv", "Mariupol", "Sevastopol", "Simferopol", "Nikopol",
+            "Poltava", "Chernihiv", "Cherkasy", "Zhytomyr", "Sumy", "Rivne", "Lutsk",
+            "Ivano-Frankivsk", "Ternopil", "Uzhhorod", "Chernivtsi", "Kropyvnytskyi",
+            "Bila Tserkva", "Brovary", "Melitopol", "Kramatorsk", "Sloviansk", "Konotop",
+            "Berdyansk", "Pavlohrad", "Kamianets-Podilskyi", "Bucha", "Hostomel", "Fastiv",
+            "Kovel", "Mukachevo", "Yuzhne", "Sviatohirsk", "Horishni Plavni", "Chervonohrad",
+            "Izmail", "Boryspil", "Uman", "Pryluky", "Bakhmut", "Khmelnitskyi", "Kolomyia",
+            "Korosten", "Shepetivka", "Nova Kakhovka", "Shostka", "Novomoskovsk");
 
     @Bean
     public CommandLineRunner initData(UserRepository userRepository,
@@ -42,9 +52,24 @@ public class DataInitializer {
                 String commonPassword = passwordEncoder.encode("password123");
                 String[] cityOptions = CITIES.toArray(new String[0]);
 
-                for (int i = 0; i < 100; i++) {
+                for (int i = 0; i < 1000; i++) {
+
                     User user = new User();
-                    user.setName(faker.name().fullName());
+                    String rawName = faker.name().fullName();
+                    // Check for honorifics like Mr/Mister or Ms/Miss and derive gender
+                    String lower = rawName.toLowerCase(Locale.ENGLISH).trim();
+                    String genderFromTitle = null;
+                    String cleanName = rawName;
+                    if (lower.startsWith("mr ") || lower.startsWith("mister ") || lower.startsWith("mr.")
+                            || lower.startsWith("mister.")) {
+                        genderFromTitle = "male";
+                        cleanName = rawName.replaceFirst("(?i)mr\\.?\\s+|(?i)mister\\.?\\s+", "");
+                    } else if (lower.startsWith("ms ") || lower.startsWith("miss ") || lower.startsWith("mrs ")
+                            || lower.startsWith("ms.") || lower.startsWith("miss.") || lower.startsWith("mrs.")) {
+                        genderFromTitle = "female";
+                        cleanName = rawName.replaceFirst("(?i)ms\\.?\\s+|(?i)miss\\.?\\s+|(?i)mrs\\.?\\s+", "");
+                    }
+                    user.setName(cleanName);
                     user.setEmail(faker.internet().emailAddress());
                     user.setPassword(commonPassword);
                     user.setProfilePictureUrl("https://picsum.photos/200/300?random=" + i);
@@ -56,7 +81,13 @@ public class DataInitializer {
                     userProfile.setAboutMe(faker.lorem().sentence(3));
                     userProfile.setCity(faker.options().option(cityOptions));
                     userProfile.setAge(faker.number().numberBetween(18, 50));
-                    userProfile.setGender(faker.options().option("male", "female"));
+                    // use gender from title if detected, otherwise random
+                    userProfile.setGender(
+                            genderFromTitle != null ? genderFromTitle : faker.options().option("male", "female"));
+
+                    userProfile.setLatitude(faker.number().randomDouble(4, 45, 51));
+                    userProfile.setLongitude(faker.number().randomDouble(4, 24, 39));
+                    userProfile.setPreferredDistance(faker.number().numberBetween(30, 150));
 
                     userProfileRepository.save(userProfile);
 
@@ -64,21 +95,24 @@ public class DataInitializer {
                     userBio.setUser(savedUser);
 
                     // Виводимо рандомно інтереси від 2 до 5
-                    List<String> interests = new ArrayList<>(List.of("Music", "Cinema", "Books", "Sports", "Coding", "Gaming", "Cooking", "Travel", "Art", "Photography"));
+                    List<String> interests = new ArrayList<>(List.of("Music", "Cinema", "Books", "Sports", "Coding",
+                            "Gaming", "Cooking", "Travel", "Art", "Photography"));
                     Collections.shuffle(interests);
                     int randomSize = faker.number().numberBetween(3, 5);
                     String[] selectedInterests = interests.subList(0, randomSize).toArray(new String[0]);
                     userBio.setInterests(selectedInterests);
 
-                    userBio.setFavoriteFood(faker.options().option("Pizza", "Burger", "Sushi", "Pasta", "Salad", "Steak"));
-                    userBio.setFavoriteMusic(faker.options().option("Rock", "Pop", "Jazz", "Hip Hop", "Classical", "Electronic"));
+                    userBio.setFavoriteFood(
+                            faker.options().option("Pizza", "Burger", "Sushi", "Pasta", "Salad", "Steak"));
+                    userBio.setFavoriteMusic(
+                            faker.options().option("Rock", "Pop", "Jazz", "Hip Hop", "Classical", "Electronic"));
                     userBio.setLikesLongWalks(faker.bool().bool());
                     userBio.setLookingFor(faker.options().option("Friends", "Relationships"));
 
                     userBioRepository.save(userBio);
                 }
 
-                System.out.println(">>> Success: Generated 100 users with profiles and bio!!!");
+                System.out.println(">>> Success: Generated 1000 users with profiles and bio!!!");
             }
         };
     }

@@ -15,8 +15,6 @@ import com.matchme.backend.dto.IdResponseDTO;
 import com.matchme.backend.services.ConnectionService;
 import com.matchme.backend.services.RecommendationService;
 
-import jakarta.servlet.http.HttpServletRequest;
-
 @RestController
 @RequestMapping("/recommendations")
 public class RecommendationController {
@@ -35,8 +33,8 @@ public class RecommendationController {
 
     // Повертає лише id, максимум 10 — як вимагає специфікація
     @GetMapping
-    public ResponseEntity<?> getRecommendations(HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> getRecommendations() {
+        Long userId = currentUserProvider.getCurrentUserId();
         List<IdResponseDTO> result = recommendationService.getRecommendations(userId).stream()
                 .map(IdResponseDTO::new)
                 .collect(Collectors.toList());
@@ -45,8 +43,8 @@ public class RecommendationController {
 
     // Проігнорувати (dismiss) рекомендацію — більше не показувати цього користувача
     @DeleteMapping("/{targetId}")
-    public ResponseEntity<?> dismissRecommendation(@PathVariable Long targetId, HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+    public ResponseEntity<?> dismissRecommendation(@PathVariable Long targetId) {
+        Long userId = currentUserProvider.getCurrentUserId();
         connectionService.dismissRecommendation(userId, targetId);
         return ResponseEntity.noContent().build();
     }

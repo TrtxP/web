@@ -1,34 +1,30 @@
 package com.matchme.backend.config;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import org.springframework.web.server.ResponseStatusException;
 
-import jakarta.servlet.http.HttpServletRequest;
-
-/**
- * Визначає id поточного автентифікованого користувача з JWT, який поклав
- * у SecurityContext
- * {@code com.matchme.backend.security.JwtAuthenticationFilter}.
- *
- * Метод і далі приймає HttpServletRequest заради сумісності з контролерами,
- * які вже викликають getCurrentUserId(request) — сам параметр більше не
- * використовується, бо userId тепер приходить з перевіреного токена, а не
- * з довільного заголовка.
- */
 @Component
 public class CurrentUserProvider {
-
-    public Long getCurrentUserId(HttpServletRequest request) {
+    
+    public Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()
-                || !(authentication.getPrincipal() instanceof Long)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Не авторизовано: відсутній дійсний токен");
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalStateException("No authenticated user found");
         }
-
-        return (Long) authentication.getPrincipal();
+        
+        Object principal = authentication.getPrincipal();
+        
+        if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
+            String username = ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
+            return Long.parseLong(username);
+        } else if (principal instanceof String) {
+            return Long.parseLong((String) principal);
+        } else if (principal instanceof Long) {
+            return (Long) principal;
+        }
+        
+        throw new IllegalStateException("Cannot extract user ID from authentication principal");
     }
 }

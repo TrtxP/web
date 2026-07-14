@@ -8,4 +8,7 @@ public class UserProfileResponseDTO {
     private String city;
     private Integer age;
     private String gender;
+    private Double latitude;
+    private Double longitude;
+    private Integer preferredDistance;
 }

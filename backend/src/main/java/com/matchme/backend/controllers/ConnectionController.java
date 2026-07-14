@@ -35,7 +35,7 @@ public class ConnectionController {
     // Повертає лише id підключених користувачів — як вимагає специфікація
     @GetMapping
     public ResponseEntity<?> getConnections(HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+        Long userId = currentUserProvider.getCurrentUserId();
         List<IdResponseDTO> result = connectionService.getConnectionIds(userId).stream()
                 .map(IdResponseDTO::new)
                 .collect(Collectors.toList());
@@ -45,7 +45,7 @@ public class ConnectionController {
     // Вхідні запити на з'єднання, що очікують рішення
     @GetMapping("/requests")
     public ResponseEntity<?> getIncomingRequests(HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+        Long userId = currentUserProvider.getCurrentUserId();
         List<IdResponseDTO> result = connectionService.getIncomingRequests(userId).stream()
                 .map(c -> new IdResponseDTO(c.getRequester().getId()))
                 .collect(Collectors.toList());
@@ -55,7 +55,7 @@ public class ConnectionController {
     // Надіслати запит на з'єднання
     @PostMapping("/{targetId}")
     public ResponseEntity<?> requestConnection(@PathVariable Long targetId, HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+        Long userId = currentUserProvider.getCurrentUserId();
         connectionService.requestConnection(userId, targetId);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
@@ -66,7 +66,7 @@ public class ConnectionController {
     public ResponseEntity<?> respondToRequest(@PathVariable Long connectionId,
             @RequestParam boolean accept,
             HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+        Long userId = currentUserProvider.getCurrentUserId();
         connectionService.respondToRequest(connectionId, userId, accept);
         return ResponseEntity.ok().build();
     }
@@ -74,7 +74,7 @@ public class ConnectionController {
     // Розірвати існуюче з'єднання
     @DeleteMapping("/{otherUserId}")
     public ResponseEntity<?> disconnect(@PathVariable Long otherUserId, HttpServletRequest request) {
-        Long userId = currentUserProvider.getCurrentUserId(request);
+        Long userId = currentUserProvider.getCurrentUserId();
         connectionService.disconnect(userId, otherUserId);
         return ResponseEntity.noContent().build();
     }

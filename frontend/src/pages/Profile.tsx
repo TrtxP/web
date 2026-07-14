@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { matchService, type AggregatedProfile } from "../services/matchService";
+import { matchService } from "../services/matchService";
+import type { CitySuggestion, AggregatedProfile } from "../types";
 
 const AVAILABLE_INTERESTS = [
   "Music",
@@ -25,6 +26,10 @@ export const Profile: React.FC = () => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
 
+  const [citySearch, setCitySearch] = useState(editedData.city || "");
+  const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
   useEffect(() => {
     const fetchMyProfile = async () => {
       try {
@@ -42,6 +47,41 @@ export const Profile: React.FC = () => {
 
     fetchMyProfile();
   }, []);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (citySearch.length < 3) {
+        setSuggestions([]);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        // Запит до безкоштовного Nominatim API (OpenStreetMap)
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(citySearch)}&addressdetails=1&limit=5`,
+        );
+        const data = await response.json();
+
+        // Фільтруємо лише населені пункти (міста, села тощо)
+        const cities = data.map(
+          (item: { display_name: string; lat: string; lon: string }) => ({
+            display_name: item.display_name,
+            lat: item.lat,
+            lon: item.lon,
+          }),
+        );
+
+        setSuggestions(cities);
+      } catch (error) {
+        console.error("Error fetching cities:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 600); // шукаємо через 600мс після того, як користувач припинив писати
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [citySearch]);
 
   const handleEditClick = () => {
     if (profile) {
@@ -158,6 +198,18 @@ export const Profile: React.FC = () => {
   const handleCancel = () => {
     setIsEditing(false);
     setEditedData({ ...profile });
+  };
+
+  const handleSelectCity = (suggestion: CitySuggestion) => {
+    setCitySearch(suggestion.display_name);
+    setSuggestions([]);
+
+    setEditedData((prev) => ({
+      ...prev,
+      city: suggestion.display_name,
+      latitude: parseFloat(suggestion.lat),
+      longitude: parseFloat(suggestion.lon),
+    }));
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -526,28 +578,84 @@ export const Profile: React.FC = () => {
 
             {isEditing && (
               <>
-                <div className="p-3 bg-gray-50 rounded-xl">
-                  <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
-                    City
-                  </span>
-                  <select
-                    name="city"
-                    value={editedData.city || ""}
-                    onChange={handleInputChange}
-                    className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none cursor-pointer focus:border-blue-500"
-                  >
-                    <option value="" disabled>
-                      Select your city
-                    </option>
-                    <option value="Kyiv">Kyiv</option>
-                    <option value="Lviv">Lviv</option>
-                    <option value="Odesa">Odesa</option>
-                    <option value="Kharkiv">Kharkiv</option>
-                    <option value="Dnipro">Dnipro</option>
-                    <option value="Poltava">Poltava</option>
-                    <option value="Chernihiv">Chernihiv</option>
-                    <option value="Vinnytsia">Vinnytsia</option>
-                  </select>
+                <div className="p-4 bg-gray-50 rounded-2xl space-y-4">
+                  <div>
+                    <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                      City
+                    </span>
+                    {isEditing ? (
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={citySearch}
+                          onChange={(e) => setCitySearch(e.target.value)}
+                          className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-500"
+                          placeholder="Type city name..."
+                        />
+
+                        {suggestions.length > 0 && (
+                          <ul className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg max-h-48 overflow-y-auto shadow-lg">
+                            {suggestions.map((s, index) => (
+                              <li
+                                key={index}
+                                onClick={() => handleSelectCity(s)}
+                                className="p-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-none"
+                              >
+                                {s.display_name}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {isSearching && (
+                          <span className="absolute right-3 top-3 text-xs text-gray-400">
+                            Searching...
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm font-semibold text-gray-700 block">
+                        {profile.city || "Not specified"}
+                      </span>
+                    )}
+                  </div>
+
+                  {(editedData.city || profile.city) && (
+                    <div className="border-t border-gray-200/60 pt-3">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs text-gray-400 uppercase font-bold">
+                          Search Radius
+                        </span>
+                        <span className="text-xs font-bold text-blue-600">
+                          {isEditing
+                            ? `${editedData.preferredDistance || 50} km`
+                            : `${profile.preferredDistance || 50} km`}
+                        </span>
+                      </div>
+
+                      {isEditing ? (
+                        <input
+                          type="range"
+                          name="preferredDistance"
+                          min="5"
+                          max="150"
+                          step="5"
+                          value={editedData.preferredDistance || 50}
+                          onChange={handleInputChange}
+                          className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                        />
+                      ) : (
+                        <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+                          {/* Візуальна шкала у режимі перегляду */}
+                          <div
+                            className="bg-blue-500 h-1.5 rounded-full"
+                            style={{
+                              width: `${((profile.preferredDistance || 50) / 150) * 100}%`,
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-3 bg-gray-50 rounded-xl">

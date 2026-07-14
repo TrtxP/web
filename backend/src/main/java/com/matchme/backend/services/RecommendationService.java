@@ -1,5 +1,6 @@
 package com.matchme.backend.services;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -10,12 +11,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.matchme.backend.models.User;
+import com.matchme.backend.GeoUtils;
 import com.matchme.backend.models.UserBio;
 import com.matchme.backend.models.UserProfile;
 import com.matchme.backend.repositories.ConnectionRepository;
 import com.matchme.backend.repositories.UserBioRepository;
 import com.matchme.backend.repositories.UserProfileRepository;
 import com.matchme.backend.repositories.UserRepository;
+import com.matchme.backend.config.CurrentUserProvider;
 
 @Service
 public class RecommendationService {
@@ -32,32 +35,47 @@ public class RecommendationService {
     private final UserProfileRepository userProfileRepository;
     private final UserBioRepository userBioRepository;
     private final ConnectionRepository connectionRepository;
+    private final CurrentUserProvider currentUserProvider;
 
     public RecommendationService(UserRepository userRepository,
             UserProfileRepository userProfileRepository,
             UserBioRepository userBioRepository,
-            ConnectionRepository connectionRepository) {
+            ConnectionRepository connectionRepository,
+            CurrentUserProvider currentUserProvider) {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
         this.userBioRepository = userBioRepository;
         this.connectionRepository = connectionRepository;
+        this.currentUserProvider = currentUserProvider;
     }
 
+    
     @SuppressWarnings("null")
     public List<Long> getRecommendations(Long userId) {
-        UserProfile myProfile = userProfileRepository.findById(userId)
+        // Prefer the currently authenticated user id when available
+        Long currentUserId = null;
+        try {
+            currentUserId = currentUserProvider.getCurrentUserId();
+        } catch (Exception e) {
+            // fallback to provided userId
+        }
+
+        Long effectiveUserId = currentUserId != null ? currentUserId : userId;
+
+        UserProfile myProfile = userProfileRepository.findById(effectiveUserId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Профіль користувача не заповнений — рекомендації недоступні"));
 
-        UserBio myBio = userBioRepository.findById(userId)
+        UserBio myBio = userBioRepository.findById(effectiveUserId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Біографічні дані користувача не заповнені — рекомендації недоступні"));
 
-        List<Long> excludedIds = connectionRepository.findExcludedUserIds(userId);
-        excludedIds.add(userId); // не рекомендувати самого себе
+        List<Long> excludedIds = new ArrayList<>(connectionRepository.findExcludedUserIds(userId));
 
         List<User> candidates = userRepository.findAll().stream()
-                .filter(u -> !excludedIds.contains(u.getId()))
+            // filter out excluded and the current user
+            .filter(u -> !excludedIds.contains(u.getId()))
+            .filter(u -> !Objects.equals(u.getId(), effectiveUserId))
                 .collect(Collectors.toList());
 
         return candidates.stream()
@@ -70,10 +88,29 @@ public class RecommendationService {
                         return null;
                     }
 
-                    // Локейшн сенс-чек: рекомендуємо лише в межах одного міста
-                    if (myProfile.getCity() == null || candidateProfile.getCity() == null
-                            || !myProfile.getCity().equalsIgnoreCase(candidateProfile.getCity())) {
+                    // Локейшн сенс-чек: спочатку намагаємось за містом, але дозволяємо
+                    // рекомендації в межах певної відстані між містами.
+                    if (myProfile.getCity() == null || candidateProfile.getCity() == null) {
                         return null;
+                    }
+
+                    if (!myProfile.getCity().equalsIgnoreCase(candidateProfile.getCity())) {
+                        if (myProfile.getLatitude() == null || myProfile.getLongitude() == null
+                                || candidateProfile.getLatitude() == null || candidateProfile.getLongitude() == null) {
+                            return null;
+                        }
+
+                        double distanceKm = GeoUtils.calculateDistance(
+                                myProfile.getLatitude(), myProfile.getLongitude(),
+                                candidateProfile.getLatitude(), candidateProfile.getLongitude());
+                                
+                        int maxAllowedDistance = myProfile.getPreferredDistance() != null
+                                ? myProfile.getPreferredDistance()
+                                : 50; 
+
+                        if (distanceKm > maxAllowedDistance) {
+                            return null;
+                        }
                     }
 
                     int score = computeScore(myBio, candidateBio, myProfile, candidateProfile);
