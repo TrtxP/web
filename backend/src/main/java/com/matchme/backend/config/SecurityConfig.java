@@ -2,8 +2,10 @@ package com.matchme.backend.config;
 
 import java.util.List;
 
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -14,6 +16,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.multipart.support.MultipartFilter;
 
 import com.matchme.backend.security.JwtAuthenticationFilter;
 import com.matchme.backend.security.RestAuthenticationEntryPoint;
@@ -36,6 +39,31 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    // === ДОДАЄМО БІНИ ДЛЯ MULTIPART ФІЛЬТРАЦІЇ ТУТ ===
+
+    @Bean(name = "filterMultipartResolver")
+    public org.springframework.web.multipart.MultipartResolver filterMultipartResolver() {
+        return new org.springframework.web.multipart.support.StandardServletMultipartResolver();
+    }
+
+    @Bean
+    public MultipartFilter multipartFilter() {
+        MultipartFilter multipartFilter = new MultipartFilter();
+        multipartFilter.setMultipartResolverBeanName("filterMultipartResolver");
+        return multipartFilter;
+    }
+
+    @Bean
+    public FilterRegistrationBean<MultipartFilter> multipartFilterRegistrationBean() {
+        FilterRegistrationBean<MultipartFilter> registrationBean = new FilterRegistrationBean<>();
+        registrationBean.setFilter(multipartFilter());
+        // Забезпечує запуск фільтра multipart ДО фільтрів безпеки та CORS
+        registrationBean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return registrationBean;
+    }
+
+    // === ========================================= ===
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
@@ -44,16 +72,15 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(restAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        // Реєстрація — публічна
+                        // Дозволяємо попередні запити OPTIONS
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        // Реєстрація та вхід
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/users").permitAll()
-                        // Вхід — публічний
                         .requestMatchers("/auth/**").permitAll()
-                        // WebSocket handshake: автентифікація відбувається на рівні STOMP CONNECT
-                        // (див. JwtChannelInterceptor), тому сам HTTP-handshake лишаємо відкритим
                         .requestMatchers("/ws/**").permitAll()
-                        // Публічний перегляд базових даних користувачів (як і раніше)
                         .requestMatchers("/users/**").permitAll()
-                        // Тепер, коли є реальна автентифікація, ці маршрути вимагають дійсний JWT
+                        .requestMatchers("/uploads/**").permitAll()
+                        // Захищені ресурси
                         .requestMatchers("/me", "/me/**", "/recommendations", "/recommendations/**",
                                 "/connections", "/connections/**")
                         .authenticated()
@@ -68,7 +95,8 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(
                 List.of("http://localhost:5173", "http://localhost:5174"));
 
-        configuration.setAllowedOriginPatterns(List.of("https://*.ngrok-free.dev", "https://overgrateful-mirtha-austerely.ngrok-free.dev"));
+        configuration.setAllowedOriginPatterns(
+                List.of("https://*.ngrok-free.dev", "https://overgrateful-mirtha-austerely.ngrok-free.dev"));
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));

@@ -1,5 +1,8 @@
 package com.matchme.backend.controllers;
 
+import java.io.IOException;
+import java.util.Collections;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -9,13 +12,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.matchme.backend.config.CurrentUserProvider;
 import com.matchme.backend.dto.UserBioPatchDTO;
 import com.matchme.backend.dto.UserBioResponseDTO;
 import com.matchme.backend.dto.UserProfileResponseDTO;
 import com.matchme.backend.dto.UserResponseDTO;
+import com.matchme.backend.services.FileStorageService;
 import com.matchme.backend.models.User;
 import com.matchme.backend.models.UserBio;
 import com.matchme.backend.models.UserProfile;
@@ -27,7 +33,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 /**
- * /me, /me/profile, /me/bio — точні аналоги UserController/UserProfileController/
+ * /me, /me/profile, /me/bio — точні аналоги
+ * UserController/UserProfileController/
  * UserBioController, але без {id} в URL: id підставляється автоматично з JWT
  * поточного користувача (через CurrentUserProvider), а не з довільного шляху.
  * Це саме те, що вимагає ТЗ: "/me — shortcut до /users/{id} для
@@ -40,15 +47,18 @@ public class MeController {
     private final UserService userService;
     private final UserProfileService userProfileService;
     private final UserBioService userBioService;
+    private final FileStorageService fileStorageService;
     private final CurrentUserProvider currentUserProvider;
 
     public MeController(UserService userService,
-                         UserProfileService userProfileService,
-                         UserBioService userBioService,
-                         CurrentUserProvider currentUserProvider) {
+            UserProfileService userProfileService,
+            UserBioService userBioService,
+            FileStorageService fileStorageService,
+            CurrentUserProvider currentUserProvider) {
         this.userService = userService;
         this.userProfileService = userProfileService;
         this.userBioService = userBioService;
+        this.fileStorageService = fileStorageService;
         this.currentUserProvider = currentUserProvider;
     }
 
@@ -117,7 +127,8 @@ public class MeController {
     }
 
     @PatchMapping("/profile")
-    public ResponseEntity<?> updateMyProfilePartial(@RequestBody UserProfile updatedFields, HttpServletRequest request) {
+    public ResponseEntity<?> updateMyProfilePartial(@RequestBody UserProfile updatedFields,
+            HttpServletRequest request) {
         Long userId = currentUserProvider.getCurrentUserId(request);
         UserProfile existing = userProfileService.updateProfilePartial(userId, updatedFields);
         return ResponseEntity.status(HttpStatus.OK).body(existing);
@@ -127,6 +138,25 @@ public class MeController {
     public ResponseEntity<?> deleteMyProfile(HttpServletRequest request) {
         Long userId = currentUserProvider.getCurrentUserId(request);
         userProfileService.deleteProfile(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/profile-picture")
+    public ResponseEntity<?> uploadProfilePicture(
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request) throws IOException {
+        Long userId = currentUserProvider.getCurrentUserId(request);
+        String pictureUrl = fileStorageService.uploadUserAvatar(userId, file);
+
+        // Повертаємо JSON: {"profilePictureUrl": "/uploads/profiles/..."}
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Collections.singletonMap("profilePictureUrl", pictureUrl));
+    }
+
+    @DeleteMapping("/profile-picture")
+    public ResponseEntity<?> deleteProfilePicture(HttpServletRequest request) throws IOException {
+        Long userId = currentUserProvider.getCurrentUserId(request);
+        fileStorageService.deleteUserAvatar(userId);
         return ResponseEntity.noContent().build();
     }
 
@@ -162,7 +192,8 @@ public class MeController {
     }
 
     @PatchMapping("/bio")
-    public ResponseEntity<?> updateMyBioPartial(@RequestBody UserBioPatchDTO updatedFields, HttpServletRequest request) {
+    public ResponseEntity<?> updateMyBioPartial(@RequestBody UserBioPatchDTO updatedFields,
+            HttpServletRequest request) {
         Long userId = currentUserProvider.getCurrentUserId(request);
         UserBio existing = userBioService.updateBioPartial(userId, updatedFields);
         return ResponseEntity.status(HttpStatus.OK).body(existing);

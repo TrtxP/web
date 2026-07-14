@@ -1,46 +1,46 @@
-import React, { useState } from 'react';
-import { api } from '../services/matchService';
+import React, { useState } from "react";
+import { api } from "../services/matchService";
 
 export const Auth: React.FC = () => {
   const [isRegistering, setIsRegistering] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const validateForm = (): boolean => {
-    if (!email.includes('@')) {
+    if (!email.includes("@")) {
       setError('Please enter a valid email address containing "@".');
       return false;
     }
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+      setError("Password must be at least 6 characters long.");
       return false;
     }
-    setError('');
+    setError("");
     return true;
   };
 
   const getErrorMessage = (error: unknown) => {
-    const defaultMessage = 'Authentication failed. Please try again.';
+    const defaultMessage = "Authentication failed. Please try again.";
 
     if (error instanceof Error && error.message) {
       return error.message;
     }
 
     if (
-      typeof error === 'object' &&
+      typeof error === "object" &&
       error !== null &&
-      'response' in error &&
-      typeof (error as { response?: unknown }).response === 'object' &&
+      "response" in error &&
+      typeof (error as { response?: unknown }).response === "object" &&
       (error as { response: { data?: unknown } }).response !== null
     ) {
       const data = (error as { response: { data?: unknown } }).response.data;
       if (
-        typeof data === 'object' &&
+        typeof data === "object" &&
         data !== null &&
-        'message' in data &&
-        typeof (data as { message?: unknown }).message === 'string'
+        "message" in data &&
+        typeof (data as { message?: unknown }).message === "string"
       ) {
         return (data as { message: string }).message;
       }
@@ -54,13 +54,24 @@ export const Auth: React.FC = () => {
     if (!validateForm()) return;
 
     setLoading(true);
-    const endpoint = isRegistering ? '/auth/register' : '/auth/login';
+    const endpoint = isRegistering ? "/auth/register" : "/auth/login";
 
     try {
       // Expects backend to return a DTO containing a JWT string token
-      const res = await api.post<{ token: string }>(endpoint, { email, password });
-      localStorage.setItem('token', res.data.token);
-      window.location.href = '/recommendations';
+      const res = await api.post<{ token: string }>(endpoint, {
+        email,
+        password,
+      });
+
+      if (isRegistering) {
+        alert("Registration successful! Please log in with your credentials.");
+        setIsRegistering(false);
+        setEmail("");
+        setPassword("");
+      } else {
+        localStorage.setItem("token", res.data.token);
+        window.location.href = "/recommendations";
+      }
     } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {
@@ -72,9 +83,13 @@ export const Auth: React.FC = () => {
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 max-w-md w-full space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-extrabold text-indigo-600 tracking-tight">⚡ match-me</h1>
+          <h1 className="text-3xl font-extrabold text-indigo-600 tracking-tight">
+            ⚡ match-me
+          </h1>
           <p className="text-gray-500 text-sm mt-2">
-            {isRegistering ? 'Create an account to start matching' : 'Welcome back! Sign in to your account'}
+            {isRegistering
+              ? "Create an account to start matching"
+              : "Welcome back! Sign in to your account"}
           </p>
         </div>
 
@@ -86,7 +101,9 @@ export const Auth: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">Email Address</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">
+              Email Address
+            </label>
             <input
               type="text"
               value={email}
@@ -98,7 +115,9 @@ export const Auth: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">Password</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">
+              Password
+            </label>
             <input
               type="password"
               value={password}
@@ -114,7 +133,11 @@ export const Auth: React.FC = () => {
             disabled={loading}
             className="w-full bg-indigo-600 text-white font-bold py-3 rounded hover:bg-indigo-700 transition shadow-lg shadow-indigo-100 flex justify-center items-center text-sm disabled:opacity-50 p-5"
           >
-            {loading ? 'Processing...' : isRegistering ? 'Register Account' : 'Log In'}
+            {loading
+              ? "Processing..."
+              : isRegistering
+                ? "Register Account"
+                : "Log In"}
           </button>
         </form>
 
@@ -123,11 +146,13 @@ export const Auth: React.FC = () => {
             type="button"
             onClick={() => {
               setIsRegistering(!isRegistering);
-              setError('');
+              setError("");
             }}
             className="text-indigo-600 hover:text-indigo-700 text-xs font-bold focus:outline-none"
           >
-            {isRegistering ? 'Already have an account? Log In' : "Don't have an account yet? Register"}
+            {isRegistering
+              ? "Already have an account? Log In"
+              : "Don't have an account yet? Register"}
           </button>
         </div>
       </div>

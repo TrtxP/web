@@ -64,7 +64,7 @@ public class DataInitializer {
                     userBio.setUser(savedUser);
 
                     // Виводимо рандомно інтереси від 2 до 5
-                    List<String> interests = new ArrayList<>(List.of("Music", "Cinema", "Books", "Sports", "Coding", "Gaming", "Cooking", "Travel"));
+                    List<String> interests = new ArrayList<>(List.of("Music", "Cinema", "Books", "Sports", "Coding", "Gaming", "Cooking", "Travel", "Art", "Photography"));
                     Collections.shuffle(interests);
                     int randomSize = faker.number().numberBetween(3, 5);
                     String[] selectedInterests = interests.subList(0, randomSize).toArray(new String[0]);

@@ -1,11 +1,29 @@
-import type React from "react";
+import React, { useEffect, useState } from "react";
 import { matchService, type AggregatedProfile } from "../services/matchService";
-import { useEffect, useState } from "react";
+
+const AVAILABLE_INTERESTS = [
+  "Music",
+  "Cinema",
+  "Books",
+  "Sports",
+  "Coding",
+  "Gaming",
+  "Cooking",
+  "Travel",
+  "Art",
+  "Photography",
+];
 
 export const Profile: React.FC = () => {
   const [profile, setProfile] = useState<AggregatedProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [editedData, setEditedData] = useState<Partial<AggregatedProfile>>({});
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchMyProfile = async () => {
@@ -13,6 +31,7 @@ export const Profile: React.FC = () => {
         setLoading(true);
         const data = await matchService.getMyFullProfile();
         setProfile(data);
+        setEditedData(data);
       } catch (err) {
         console.error(`Error loading profile: ${err}`);
         setError("Failed load profile data");
@@ -23,6 +42,177 @@ export const Profile: React.FC = () => {
 
     fetchMyProfile();
   }, []);
+
+  const handleEditClick = () => {
+    if (profile) {
+      setEditedData({ ...profile });
+      setIsEditing(true);
+    }
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
+    const { name, value } = e.target;
+    setEditedData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setEditedData((prev) => ({
+      ...prev,
+      [name]: checked,
+    }));
+  };
+
+  const handleInterestCheckboxChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const { value, checked } = e.target;
+
+    setEditedData((prev) => {
+      const currentInterests = prev.interests || [];
+      let updatedInterests: string[];
+
+      if (checked) {
+        updatedInterests = currentInterests.includes(value)
+          ? currentInterests
+          : [...currentInterests, value];
+      } else {
+        updatedInterests = currentInterests.filter((item) => item !== value);
+      }
+
+      return {
+        ...prev,
+        interests: updatedInterests,
+      };
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please, select your photo!");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File is too large! Max file size - 5MB.");
+      return;
+    }
+
+    try {
+      setIsUploadingPhoto(true);
+
+      // uploadProfilePicture returns an object with profilePictureUrl
+      let result: { profilePictureUrl: string } | string = "";
+
+      if (file) {
+        result = await matchService.uploadProfilePicture(file);
+      }
+
+      const url =
+        typeof result === "string" ? result : result.profilePictureUrl;
+
+      setProfile((prev) => (prev ? { ...prev, profilePictureUrl: url } : null));
+      alert("Profile photo updated successfully");
+    } catch (err) {
+      console.error(`Error loading photo: ${err}`);
+      alert("Falied load your photo.");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    if (
+      !profile ||
+      !window.confirm("Are you sure to want to delete a profile photo?")
+    )
+      return;
+
+    try {
+      setIsUploadingPhoto(true);
+      await matchService.deleteProfilePicture();
+
+      setProfile((prev) => (prev ? { ...prev, profilePictureUrl: "" } : null));
+      alert("Photo deleted!");
+    } catch (err) {
+      console.error(`Error deleting photo: ${err}`);
+      alert("Failed deleting photo.");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditedData({ ...profile });
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!profile) return;
+
+    try {
+      setIsSaving(true);
+
+      const updatedName = editedData.name || profile.name;
+
+      const profileDTO = {
+        aboutMe: editedData.aboutMe,
+        city: editedData.city,
+        age: editedData.age ? Number(editedData.age) : undefined,
+        gender: editedData.gender,
+      };
+
+      const bioDTO = {
+        interests: editedData.interests,
+        lookingFor: editedData.lookingFor,
+        favoriteFood: editedData.favoriteFood,
+        favoriteMusic: editedData.favoriteMusic,
+        likesLongWalks: editedData.likesLongWalks,
+      };
+
+      await matchService.updateProfile(updatedName, profileDTO, bioDTO);
+
+      setProfile((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          ...editedData,
+          profilePictureUrl: prev.profilePictureUrl,
+        };
+      });
+      setIsEditing(false);
+
+      alert("Profile updated successfully!");
+    } catch (err) {
+      console.error(`Error saving profile: ${err}`);
+      alert("Failed save changes");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const getAvatarUrl = (url: string | undefined) => {
+    if (!url) return "";
+    if (url.startsWith("/uploads")) {
+      return `http://localhost:8080${url}`;
+    }
+    return url;
+  };
 
   if (loading) {
     return (
@@ -46,37 +236,84 @@ export const Profile: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 ms:grid-cols-3 gap-8">
+      <form
+        onSubmit={handleSave}
+        className="grid grid-cols-1 md:grid-cols-3 gap-8"
+      >
         <div className="md:col-span-1 bg-white border border-gray-100 rounded-2xl shadow-sm p-6 flex flex-col items-center text-center h-fit">
-          <div className="relative w-32 h-32 mb-4">
-            {profile.profilePictureUrl ? (
-              <img
-                src={profile.profilePictureUrl}
-                alt={profile.name}
-                className="w-full h-full object-cover rounded-full border-4 border-gray-50 shadow-md"
-              />
-            ) : (
-              <div className="w-full h-full rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-5xl font-bold shadow-inner">
-                {profile.name ? profile.name.charAt(0).toUpperCase() : "👤"}
-              </div>
-            )}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/*"
+            className="hidden"
+          />
+
+          <div className="relative w-32 h-32 mb-4 group">
+            <div
+              onClick={
+                isEditing && !isUploadingPhoto ? triggerFileInput : undefined
+              }
+              className={`w-full h-full rounded-full overflow-hidden border-4 border-gray-50 shadow-md ${
+                isEditing
+                  ? "cursor-pointer hover:opacity-80 transition-opacity"
+                  : ""
+              }`}
+            >
+              {profile.profilePictureUrl ? (
+                <img
+                  src={getAvatarUrl(profile.profilePictureUrl)}
+                  alt={profile.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-blue-50 text-blue-600 flex items-center justify-center text-5xl font-bold shadow-inner">
+                  {profile.name ? profile.name.charAt(0).toUpperCase() : "👤"}
+                </div>
+              )}
+
+              {isEditing && (
+                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-white text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+                  {isUploadingPhoto ? "Loading..." : "Change photo"}
+                </div>
+              )}
+            </div>
+
             <span
               className={`absolute bottom-1 right-1 w-5 h-5 rounded-full border-4 border-white ${
                 profile.isOnline ? "bg-green-500" : "bg-gray-400"
               }`}
               title={profile.isOnline ? "Online" : "Offline"}
-            ></span>
+            />
           </div>
+
+          {isEditing && profile.profilePictureUrl && (
+            <button
+              type="button"
+              onClick={handleDeletePhoto}
+              disabled={isUploadingPhoto}
+              className="text-xs text-red-500 hover:text-red-700 font-semibold mb-4 transition-colors disabled:opacity-50"
+            >
+              Delete current photo
+            </button>
+          )}
 
           <h2 className="text-2xl font-black text-gray-800 mb-1">
             {profile.name}
           </h2>
 
-          <div className="flex items-center gap-1 text-gray-500 text-sm mb-4">
+          <div className="flex items-center justify-center flex-wrap gap-1 text-gray-500 text-sm mb-4">
             <span>📍 {profile.city || "City not specified"}</span>
             {profile.age && <span>• {profile.age} years</span>}
             {profile.gender && (
-              <span>• {profile.gender === 'male' ? '👨 Man' : profile.gender === 'woman' ? '👩 Woman' : profile.gender}</span>
+              <span>
+                •{" "}
+                {profile.gender === "male"
+                  ? "male"
+                  : profile.gender === "female"
+                    ? "female"
+                    : profile.gender}
+              </span>
             )}
           </div>
 
@@ -92,26 +329,91 @@ export const Profile: React.FC = () => {
 
           <hr className="w-full my-5 border-gray-100" />
 
-          <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition-colors shadow-sm">
-            Edit Profile
-          </button>
+          {!isEditing ? (
+            <button
+              type="button"
+              onClick={handleEditClick}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded text-sm transition-colors shadow-sm"
+            >
+              Edit Profile
+            </button>
+          ) : (
+            <div className="w-full space-y-2">
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded text-sm transition-colors shadow-sm disabled:opacity-50"
+              >
+                {isSaving ? "Saving..." : "Save Changes"}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 px-4 rounded text-sm transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
 
-          <div className="md:col-span-2 space-y-6 p-10">
-            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span>📝</span> About Me
-              </h3>
+        <div className="md:col-span-2 space-y-6">
+          {/* СЕКЦІЯ: About Me */}
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <span>📝</span> About Me
+            </h3>
+            {isEditing ? (
+              <textarea
+                name="aboutMe"
+                value={editedData.aboutMe || ""}
+                onChange={handleInputChange}
+                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm outline-none transition-all"
+                rows={4}
+                placeholder="Write a few words about yourself..."
+              />
+            ) : (
               <p className="text-gray-600 leading-relaxed text-sm italic">
                 {profile.aboutMe
                   ? `"${profile.aboutMe}"`
                   : "User still doesn't talk about yourself."}
               </p>
-            </div>
+            )}
+          </div>
 
-            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span>🔥</span> Interests & Hobbies
-              </h3>
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <span>🔥</span> Interests & Hobbies
+            </h3>
+            {isEditing ? (
+              <div className="space-y-3">
+                <p className="text-xs text-gray-400">Select your interests:</p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {AVAILABLE_INTERESTS.map((interest) => {
+                    const isChecked = (editedData.interests || []).includes(
+                      interest,
+                    );
+                    return (
+                      <label
+                        key={interest}
+                        className="flex items-center gap-2.5 p-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200/60 cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          value={interest}
+                          checked={isChecked}
+                          onChange={handleInterestCheckboxChange}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700 select-none">
+                          {interest}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
               <div className="flex flex-wrap gap-2">
                 {profile.interests && profile.interests.length > 0 ? (
                   profile.interests.map((interest, index) => (
@@ -128,32 +430,168 @@ export const Profile: React.FC = () => {
                   </p>
                 )}
               </div>
-            </div>
+            )}
+          </div>
 
-            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-3 bg-gray-50 rounded-xl">
-                <span className="text-xs text-gray-400 uppercase font-bold block mb-1">Looking For</span>
-                <span className="text-sm font-semibold text-gray-700">{profile.lookingFor || "Not specified"}</span>
-              </div>
-              <div className="p-3 bg-gray-50 rounded-xl">
-                <span className="text-xs text-gray-400 uppercase font-bold block mb-1">Favorite Food</span>
-                <span className="text-sm font-semibold text-gray-700">{profile.favoriteFood || "Not specified"}</span>
-              </div>
-              <div className="p-3 bg-gray-50 rounded-xl">
-                <span className="text-xs text-gray-400 uppercase font-bold block mb-1">Favorite Music</span>
-                <span className="text-sm font-semibold text-gray-700">{profile.favoriteMusic || "Not specified"}</span>
-              </div>
-              <div className="p-3 bg-gray-50 rounded-xl">
-                <span className="text-xs text-gray-400 uppercase font-bold block mb-1">Long Walks</span>
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-3 bg-gray-50 rounded-xl">
+              <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                Looking For
+              </span>
+              {isEditing ? (
+                <select
+                  name="lookingFor"
+                  value={editedData.lookingFor || ""}
+                  onChange={handleInputChange}
+                  className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none cursor-pointer focus:border-blue-500"
+                >
+                  <option value="" disabled>
+                    Select what are you looking for
+                  </option>
+                  <option value="Friends">Friends</option>
+                  <option value="Relationship">Relationship</option>
+                </select>
+              ) : (
                 <span className="text-sm font-semibold text-gray-700">
-                  {profile.likesLongWalks ? "❤️ Loves long walks" : "🤷‍♂️ Doesn't care much"}
+                  {profile.lookingFor || "Not specified"}
                 </span>
-              </div>
+              )}
             </div>
 
+            <div className="p-3 bg-gray-50 rounded-xl">
+              <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                Favorite Food
+              </span>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="favoriteFood"
+                  value={editedData.favoriteFood || ""}
+                  onChange={handleInputChange}
+                  className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none"
+                  placeholder="e.g. Pizza, Sushi"
+                />
+              ) : (
+                <span className="text-sm font-semibold text-gray-700">
+                  {profile.favoriteFood || "Not specified"}
+                </span>
+              )}
+            </div>
+
+            <div className="p-3 bg-gray-50 rounded-xl">
+              <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                Favorite Music
+              </span>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="favoriteMusic"
+                  value={editedData.favoriteMusic || ""}
+                  onChange={handleInputChange}
+                  className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none"
+                  placeholder="e.g. Rock, Jazz, Pop"
+                />
+              ) : (
+                <span className="text-sm font-semibold text-gray-700">
+                  {profile.favoriteMusic || "Not specified"}
+                </span>
+              )}
+            </div>
+
+            <div className="p-3 bg-gray-50 rounded-xl flex flex-col justify-between">
+              <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                Long Walks
+              </span>
+              {isEditing ? (
+                <label className="inline-flex items-center gap-2 cursor-pointer mt-1">
+                  <input
+                    type="checkbox"
+                    name="likesLongWalks"
+                    checked={!!editedData.likesLongWalks}
+                    onChange={handleCheckboxChange}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-semibold text-gray-700 select-none">
+                    Loves long walks
+                  </span>
+                </label>
+              ) : (
+                <span className="text-sm font-semibold text-gray-700">
+                  {profile.likesLongWalks
+                    ? "❤️ Loves long walks"
+                    : "🤷‍♂️ Doesn't care much"}
+                </span>
+              )}
+            </div>
+
+            {isEditing && (
+              <>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                    City
+                  </span>
+                  <select
+                    name="city"
+                    value={editedData.city || ""}
+                    onChange={handleInputChange}
+                    className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none cursor-pointer focus:border-blue-500"
+                  >
+                    <option value="" disabled>
+                      Select your city
+                    </option>
+                    <option value="Kyiv">Kyiv</option>
+                    <option value="Lviv">Lviv</option>
+                    <option value="Odesa">Odesa</option>
+                    <option value="Kharkiv">Kharkiv</option>
+                    <option value="Dnipro">Dnipro</option>
+                    <option value="Poltava">Poltava</option>
+                    <option value="Chernihiv">Chernihiv</option>
+                    <option value="Vinnytsia">Vinnytsia</option>
+                  </select>
+                </div>
+
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                    Age
+                  </span>
+                  <input
+                    type="number"
+                    name="age"
+                    value={editedData.age || ""}
+                    onChange={handleInputChange}
+                    className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none"
+                    placeholder="Age"
+                  />
+                </div>
+
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                    Gender
+                  </span>
+                  {isEditing ? (
+                    <select
+                      name="gender"
+                      value={editedData.gender || ""}
+                      onChange={handleInputChange}
+                      className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none cursor-pointer focus:border-blue-500"
+                    >
+                      <option value="" disabled>
+                        Select your gender
+                      </option>
+                      <option value="male">male</option>
+                      <option value="female">female</option>
+                    </select>
+                  ) : (
+                    <span className="text-sm font-semibold text-gray-700">
+                      {profile.gender || "Not specified"}
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 };

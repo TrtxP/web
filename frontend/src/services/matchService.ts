@@ -12,13 +12,18 @@ export const api = axios.create({
   baseURL: API_URL,
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (err) => {
+    return Promise.reject(err);
+  },
+);
 
 export interface AggregatedProfile
   extends UserDTO, UserProfileDTO, UserBioDTO {}
@@ -105,5 +110,17 @@ export const matchService = {
       api.patch("/me/profile", profile),
       api.patch("/me/bio", bio),
     ]);
+  },
+  uploadProfilePicture: async (
+    file: File,
+  ): Promise<{ profilePictureUrl: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await api.post("/me/profile-picture", formData);
+    return response.data;
+  },
+  deleteProfilePicture: async (): Promise<void> => {
+    await api.delete("/me/profile-picture");
   },
 };

@@ -20,8 +20,7 @@ public class User {
 
     @NotBlank(message = "Password mustn't be empty!")
     @Size(min = 8, max = 64, message = "Password must be in range from 8 to 64 characters!")
-    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!_]).*$", 
-    message = "Password is too weak (must be letters in different registers, numbers and special characters")
+    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!_]).*$", message = "Password is too weak (must be letters in different registers, numbers and special characters")
     private String password;
 
     @NotBlank(message = "Name mustn't be empty!")
@@ -29,8 +28,6 @@ public class User {
     @Pattern(regexp = "^[a-zA-Z0-9\\s'-.:\b]+$", message = "Name has invalid symbols")
     private String name;
 
-    @Pattern(regexp = 
-                "https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*)",
-             message = "Ivalid profile picture URL")
+    @Pattern(regexp = "^(https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*))?|(\\/uploads\\/.*)?$", message = "Invalid profile picture URL")
     private String profilePictureUrl;
 }
