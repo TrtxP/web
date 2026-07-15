@@ -9,6 +9,7 @@ import Connections from "./pages/Connections";
 import { matchService } from "./services/matchService";
 import { type PrivateAggregatedProfile, isProfileComplete } from "./types";
 
+
 function App() {
   const [profile, setProfile] = useState<PrivateAggregatedProfile | null>(null);
   const token = localStorage.getItem("token");
@@ -112,7 +113,10 @@ function App() {
             }
           />
 
-          <Route path="*" element={<Navigate to="/recommendations" replace />} />
+          <Route
+            path="*"
+            element={token ? <Navigate to="/recommendations" replace /> : <Navigate to="/login" replace />}
+          />
         </Routes>
       </Layout>
     </Router>
