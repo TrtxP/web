@@ -108,6 +108,9 @@ public class MeController {
         dto.setCity(profile.getCity());
         dto.setAge(profile.getAge());
         dto.setGender(profile.getGender());
+        dto.setLatitude(profile.getLatitude());
+        dto.setLongitude(profile.getLongitude());
+        dto.setPreferredDistance(profile.getPreferredDistance());
         return ResponseEntity.status(HttpStatus.OK).body(dto);
     }
 

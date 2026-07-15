@@ -98,7 +98,7 @@ export const Profile: React.FC = () => {
     const { name, value } = e.target;
     setEditedData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: name === "preferredDitance" ? Number(value) : value,
     }));
   };
 
@@ -227,6 +227,9 @@ export const Profile: React.FC = () => {
         city: editedData.city,
         age: editedData.age ? Number(editedData.age) : undefined,
         gender: editedData.gender,
+        latitude: editedData.latitude,
+        longitude: editedData.longitude,
+        preferredDistance: editedData.preferredDistance ? Number(editedData.preferredDistance) : undefined,
       };
 
       const bioDTO = {
@@ -637,7 +640,7 @@ export const Profile: React.FC = () => {
                           type="range"
                           name="preferredDistance"
                           min="5"
-                          max="150"
+                          max="900"
                           step="5"
                           value={editedData.preferredDistance || 50}
                           onChange={handleInputChange}

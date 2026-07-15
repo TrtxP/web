@@ -35,6 +35,9 @@ public class UserProfileController {
         userProfileResponseDTO.setCity(userProfile.getCity());
         userProfileResponseDTO.setAge(userProfile.getAge());
         userProfileResponseDTO.setGender(userProfile.getGender());
+        userProfileResponseDTO.setLatitude(userProfile.getLatitude());
+        userProfileResponseDTO.setLongitude(userProfile.getLongitude());
+        userProfileResponseDTO.setPreferredDistance(userProfile.getPreferredDistance());
         return ResponseEntity.status(HttpStatus.OK).body(userProfileResponseDTO);
     }
 

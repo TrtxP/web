@@ -31,11 +31,12 @@ public class UserProfile {
     @Pattern(regexp = "^[a-zA-Z\\s',.-:]+$", message = "Ivalid user information")
     private String aboutMe;
 
+
     @NotBlank(message = "City mustn't be empty")
     @Size(max = 100)
-    // Allow letters from any language (including Cyrillic), spaces and common punctuation used in
+    // Allow letters from any language (including Cyrillic), digits, spaces and common punctuation used in
     // location names (apostrophe, hyphen, comma, period, parentheses).
-    @Pattern(regexp = "^[\\p{L}\\s'\\-.,()]+$", message = "Invalid city name")
+    @Pattern(regexp = "^[\\p{L}\\d\\s'\\-.,()]+$", message = "Invalid city name")
     private String city;
 
     @Min(value = 18, message = "You should be older than 18!")

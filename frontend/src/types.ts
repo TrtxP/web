@@ -24,6 +24,9 @@ export interface UserProfileDTO {
   city: string;
   age: number;
   gender: string;
+  latitude: number;
+  longitude: number;
+  preferredDistance: number;
 }
 
 export interface UserBioDTO {
@@ -49,9 +52,8 @@ export interface TypingIndicatorDTO {
   typing: boolean;
 }
 
-export interface AggregatedProfile extends UserDTO, UserProfileDTO, UserBioDTO {
-  preferredDistance: number;
-}
+export interface AggregatedProfile
+  extends UserDTO, UserProfileDTO, UserBioDTO {}
 
 export interface FullUserInformation {
   id: number;

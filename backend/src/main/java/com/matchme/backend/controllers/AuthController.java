@@ -3,6 +3,7 @@ package com.matchme.backend.controllers;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,10 +35,10 @@ public class AuthController {
     private final JwtService jwtService;
 
     public AuthController(UserRepository userRepository,
-                          PasswordEncoder passwordEncoder,
-                          JwtService jwtService,
-                          UserProfileRepository userProfileRepository,
-                          UserBioRepository userBioRepository) {
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService,
+            UserProfileRepository userProfileRepository,
+            UserBioRepository userBioRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -75,8 +76,17 @@ public class AuthController {
         defaultProfile.setUser(savedUser);
         defaultProfile.setAboutMe("About me section is empty yet.");
         defaultProfile.setCity("Not specified");
-        defaultProfile.setAge(18); 
+        defaultProfile.setAge(18);
         defaultProfile.setGender("Not specified");
+
+        double randomLatitude = ThreadLocalRandom.current().nextDouble(45.0, 52.0); 
+        double randomLongitude = ThreadLocalRandom.current().nextDouble(23.0, 40.0);
+        int randomPreferredDistance = ThreadLocalRandom.current().nextInt(50, 151); 
+
+        defaultProfile.setLatitude(randomLatitude);
+        defaultProfile.setLongitude(randomLongitude);
+        defaultProfile.setPreferredDistance(randomPreferredDistance);
+
         userProfileRepository.save(defaultProfile);
 
         com.matchme.backend.models.UserBio defaultBio = new com.matchme.backend.models.UserBio();
@@ -85,7 +95,8 @@ public class AuthController {
         defaultBio.setFavoriteFood("Not specified");
         defaultBio.setFavoriteMusic("Not specified");
         defaultBio.setLookingFor("Friends");
-        List<String> interests = new ArrayList<>(List.of("Music", "Cinema", "Books", "Sports", "Coding", "Gaming", "Cooking", "Travel"));
+        List<String> interests = new ArrayList<>(
+                List.of("Music", "Cinema", "Books", "Sports", "Coding", "Gaming", "Cooking", "Travel"));
         Collections.shuffle(interests);
         int size = 4;
         String[] selectedInterests = interests.subList(0, size).toArray(new String[0]);

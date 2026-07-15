@@ -1,5 +1,6 @@
 package com.matchme.backend;
 
+// Haversione Formula for displaying recommendations withing Ukraine
 public class GeoUtils {
     private static final int EARTH_RADIUS = 6371; 
 
@@ -11,7 +12,7 @@ public class GeoUtils {
                    Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
 
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        double c = 2 * Math.asin(Math.sqrt(a));
 
         return EARTH_RADIUS * c; 
     }

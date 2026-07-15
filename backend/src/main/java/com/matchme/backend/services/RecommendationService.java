@@ -49,7 +49,6 @@ public class RecommendationService {
         this.currentUserProvider = currentUserProvider;
     }
 
-    
     @SuppressWarnings("null")
     public List<Long> getRecommendations(Long userId) {
         // Prefer the currently authenticated user id when available
@@ -73,11 +72,12 @@ public class RecommendationService {
         List<Long> excludedIds = new ArrayList<>(connectionRepository.findExcludedUserIds(userId));
 
         List<User> candidates = userRepository.findAll().stream()
-            // filter out excluded and the current user
-            .filter(u -> !excludedIds.contains(u.getId()))
-            .filter(u -> !Objects.equals(u.getId(), effectiveUserId))
+                // filter out excluded and the current user
+                .filter(u -> !excludedIds.contains(u.getId()))
+                .filter(u -> !Objects.equals(u.getId(), effectiveUserId))
                 .collect(Collectors.toList());
 
+        
         return candidates.stream()
                 .map(candidate -> {
                     UserProfile candidateProfile = userProfileRepository.findById(candidate.getId()).orElse(null);
@@ -103,10 +103,10 @@ public class RecommendationService {
                         double distanceKm = GeoUtils.calculateDistance(
                                 myProfile.getLatitude(), myProfile.getLongitude(),
                                 candidateProfile.getLatitude(), candidateProfile.getLongitude());
-                                
+
                         int maxAllowedDistance = myProfile.getPreferredDistance() != null
                                 ? myProfile.getPreferredDistance()
-                                : 50; 
+                                : 50;
 
                         if (distanceKm > maxAllowedDistance) {
                             return null;
@@ -114,7 +114,7 @@ public class RecommendationService {
                     }
 
                     int score = computeScore(myBio, candidateBio, myProfile, candidateProfile);
-
+ 
                     if (score < MIN_SCORE_THRESHOLD) {
                         return null;
                     }
@@ -175,23 +175,18 @@ public class RecommendationService {
     }
 
     private boolean equalsIgnoreCaseSafeInterests(String[] a, String[] b) {
-        if (a == null || b == null || a.length != b.length) {
+        if (a == null || b == null) {
             return false;
         }
 
-        for (int i = 0; i < a.length; i++) {
-            String first = a[i];
-            String second = b[i];
-            if (first == null) {
-                if (second != null) {
-                    return false;
+        for (String interestA : a) {
+            for (String interestB : b) {
+                if (interestA != null && interestB != null && interestA.equalsIgnoreCase(interestB)) {
+                    return true; 
                 }
-            } else if (!first.equalsIgnoreCase(second)) {
-                return false;
             }
         }
-
-        return true;
+        return false;
     }
 
     private record ScoredCandidate(Long userId, int score) {

@@ -61,6 +61,9 @@ public class UserProfileService {
         existingProfile.setCity(newProfile.getCity());
         existingProfile.setAge(newProfile.getAge());
         existingProfile.setGender(newProfile.getGender());
+        existingProfile.setLatitude(newProfile.getLatitude());
+        existingProfile.setLongitude(newProfile.getLongitude());
+        existingProfile.setPreferredDistance(newProfile.getPreferredDistance());
 
         return userProfileRepository.save(existingProfile);
     }
@@ -88,6 +91,18 @@ public class UserProfileService {
 
         if (updatedFields.getGender() != null) {
             existingProfile.setGender(updatedFields.getGender());
+        }
+
+        if (updatedFields.getLatitude() != null) {
+            existingProfile.setLatitude(updatedFields.getLatitude());
+        }
+
+        if (updatedFields.getLongitude() != null) {
+            existingProfile.setLongitude(updatedFields.getLongitude());
+        }
+
+        if (updatedFields.getPreferredDistance() != null) {
+            existingProfile.setPreferredDistance(updatedFields.getPreferredDistance());
         }
 
         return userProfileRepository.save(existingProfile);
