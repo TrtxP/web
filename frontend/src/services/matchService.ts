@@ -5,6 +5,8 @@ import type {
   UserBioDTO,
   IdResponseDTO,
   AggregatedProfile,
+  PrivateAggregatedProfile,
+  MyPrivateUserDTO,
 } from "../types";
 
 const API_URL = "http://localhost:8080";
@@ -38,11 +40,11 @@ export const resolveProfileData = async (
 
   return {
     // ensure required fields from AggregatedProfile exist; provide sensible defaults
-    preferredDistance:
-      (profileRes.data as AggregatedProfile)?.preferredDistance ?? 0,
     ...userRes.data,
     ...profileRes.data,
     ...bioRes.data,
+    preferredDistance:
+      (profileRes.data as AggregatedProfile)?.preferredDistance ?? 0,
   };
 };
 
@@ -121,18 +123,18 @@ export const matchService = {
   disconnectFromUser: async (targetId: number): Promise<void> => {
     await api.delete(`/connections/${targetId}`);
   },
-  getMyFullProfile: async (): Promise<AggregatedProfile> => {
+  getMyFullProfile: async (): Promise<PrivateAggregatedProfile> => {
     const [userRes, profileRes, bioRes] = await Promise.all([
-      api.get<UserDTO>("/me"),
+      api.get<MyPrivateUserDTO>("/me"),
       api.get<UserProfileDTO>("/me/profile"),
       api.get<UserBioDTO>("/me/bio"),
     ]);
     return {
-      preferredDistance:
-        (profileRes.data as AggregatedProfile)?.preferredDistance ?? 0,
       ...userRes.data,
       ...profileRes.data,
       ...bioRes.data,
+      preferredDistance:
+        (profileRes.data as PrivateAggregatedProfile)?.preferredDistance ?? 0,
     };
   },
   updateProfile: async (

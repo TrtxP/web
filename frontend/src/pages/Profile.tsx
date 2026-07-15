@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { matchService } from "../services/matchService";
-import type { CitySuggestion, AggregatedProfile } from "../types";
+import type { CitySuggestion, PrivateAggregatedProfile } from "../types";
 
 const AVAILABLE_INTERESTS = [
   "Music",
@@ -16,12 +16,14 @@ const AVAILABLE_INTERESTS = [
 ];
 
 export const Profile: React.FC = () => {
-  const [profile, setProfile] = useState<AggregatedProfile | null>(null);
+  const [profile, setProfile] = useState<PrivateAggregatedProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [editedData, setEditedData] = useState<Partial<AggregatedProfile>>({});
+  const [editedData, setEditedData] = useState<
+    Partial<PrivateAggregatedProfile>
+  >({});
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
@@ -98,7 +100,7 @@ export const Profile: React.FC = () => {
     const { name, value } = e.target;
     setEditedData((prev) => ({
       ...prev,
-      [name]: name === "preferredDitance" ? Number(value) : value,
+      [name]: name === "preferredDistance" ? Number(value) : value,
     }));
   };
 
@@ -229,7 +231,9 @@ export const Profile: React.FC = () => {
         gender: editedData.gender,
         latitude: editedData.latitude,
         longitude: editedData.longitude,
-        preferredDistance: editedData.preferredDistance ? Number(editedData.preferredDistance) : undefined,
+        preferredDistance: editedData.preferredDistance
+          ? Number(editedData.preferredDistance)
+          : undefined,
       };
 
       const bioDTO = {
@@ -356,6 +360,16 @@ export const Profile: React.FC = () => {
           <h2 className="text-2xl font-black text-gray-800 mb-1">
             {profile.name}
           </h2>
+
+          {profile.email && (
+            <div className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1 mb-3 flex items-center gap-1.5">
+              <span>📧</span>
+              <span className="font-mono select-all">{profile.email}</span>
+              <span className="text-[10px] text-blue-500 font-bold uppercase tracking-wider bg-blue-50 px-1.5 py-0.5 rounded">
+                Private
+              </span>
+            </div>
+          )}
 
           <div className="flex items-center justify-center flex-wrap gap-1 text-gray-500 text-sm mb-4">
             <span>📍 {profile.city || "City not specified"}</span>

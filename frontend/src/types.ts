@@ -18,6 +18,13 @@ export interface UserDTO {
   profilePictureUrl: string;
 }
 
+export interface MyPrivateUserDTO {
+  id: number;
+  name: string;
+  email: string;
+  profilePictureUrl: string;
+}
+
 export interface UserProfileDTO {
   aboutMe: string;
   isOnline: boolean;
@@ -54,6 +61,9 @@ export interface TypingIndicatorDTO {
 
 export interface AggregatedProfile
   extends UserDTO, UserProfileDTO, UserBioDTO {}
+
+export interface PrivateAggregatedProfile
+  extends MyPrivateUserDTO, UserProfileDTO, UserBioDTO {}
 
 export interface FullUserInformation {
   id: number;

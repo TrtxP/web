@@ -17,10 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.matchme.backend.config.CurrentUserProvider;
+import com.matchme.backend.dto.MyPrivateProfileResponseDTO;
 import com.matchme.backend.dto.UserBioPatchDTO;
 import com.matchme.backend.dto.UserBioResponseDTO;
 import com.matchme.backend.dto.UserProfileResponseDTO;
-import com.matchme.backend.dto.UserResponseDTO;
 import com.matchme.backend.services.FileStorageService;
 import com.matchme.backend.models.User;
 import com.matchme.backend.models.UserBio;
@@ -68,9 +68,10 @@ public class MeController {
         Long userId = currentUserProvider.getCurrentUserId();
         User user = userService.getBaseInfo(userId);
 
-        UserResponseDTO dto = new UserResponseDTO();
+        MyPrivateProfileResponseDTO dto = new MyPrivateProfileResponseDTO();
         dto.setId(user.getId());
         dto.setName(user.getName());
+        dto.setEmail(user.getEmail());
         dto.setProfilePictureUrl(user.getProfilePictureUrl());
         return ResponseEntity.ok(dto);
     }
