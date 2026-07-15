@@ -1,27 +1,32 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import type { LayoutProps } from "../types";
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+export const Layout: React.FC<LayoutProps> = ({
+  children,
+  profileComplete = false,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem("token");
     setMobileOpen(false);
-    navigate('/login');
+    navigate("/login");
   };
 
+  // Визначаємо елементи меню
   const navItems = [
-    { label: 'Recommendations', path: '/recommendations' },
-    { label: 'Connections', path: '/connections' },
-    { label: 'Chat', path: '/chat' },
-    { label: 'My Profile', path: '/profile' },
+    {
+      label: "Recommendations",
+      path: "/recommendations",
+      requiresProfile: true,
+    },
+    { label: "Connections", path: "/connections", requiresProfile: true },
+    { label: "Chat", path: "/chat", requiresProfile: true },
+    { label: "My Profile", path: "/profile", requiresProfile: false },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -32,30 +37,42 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm backdrop-blur-md bg-white/95">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
-              
-              {/* Logo Brand Frame */}
               <div className="flex items-center">
-                <Link to="/recommendations" className="text-xl font-black text-indigo-600 tracking-wider">
+                <Link
+                  to={profileComplete ? "/recommendations" : "/profile"}
+                  className="text-xl font-black text-indigo-600 tracking-wider"
+                >
                   ⚡ match-me
                 </Link>
               </div>
 
-              {/* Desktop Menu Navigation Links */}
               <div className="hidden md:flex items-center gap-1">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                      isActive(item.path)
-                        ? 'bg-indigo-50 text-indigo-600'
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-                
+                {navItems.map((item) => {
+                  const isBlocked = item.requiresProfile && !profileComplete;
+
+                  return isBlocked ? (
+                    <span
+                      key={item.path}
+                      title="Please complete your profile to unlock this section"
+                      className="px-4 py-2 rounded-xl text-sm font-bold text-gray-300 cursor-not-allowed select-none"
+                    >
+                      🔒 {item.label}
+                    </span>
+                  ) : (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                        isActive(item.path)
+                          ? "bg-indigo-50 text-indigo-600"
+                          : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+
                 <span className="h-5 w-px bg-gray-200 mx-3" />
 
                 <button
@@ -66,18 +83,33 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </button>
               </div>
 
-              {/* Mobile Menu Action Hamburger Toggle Button */}
+              {/* Mobile Menu Toggle */}
               <div className="md:hidden flex items-center">
                 <button
                   onClick={() => setMobileOpen(!mobileOpen)}
                   className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 focus:outline-none"
                   aria-label="Toggle navigation menu"
                 >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
                     {mobileOpen ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 6h16M4 12h16M4 18h16"
+                      />
                     )}
                   </svg>
                 </button>
@@ -85,23 +117,36 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </div>
 
-          {/* Mobile Navigation Dropdown Menu Draw Drawer */}
           {mobileOpen && (
             <div className="md:hidden border-t border-gray-100 bg-white px-4 pt-2 pb-4 space-y-1 shadow-inner animate-fadeIn">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setMobileOpen(false)}
-                  className={`block px-4 py-3 rounded-xl text-base font-bold transition ${
-                    isActive(item.path)
-                      ? 'bg-indigo-50 text-indigo-600'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
+              {navItems.map((item) => {
+                const isBlocked = item.requiresProfile && !profileComplete;
+
+                return isBlocked ? (
+                  <div
+                    key={item.path}
+                    className="block px-4 py-3 text-base font-bold text-gray-300 cursor-not-allowed"
+                  >
+                    🔒 {item.label}{" "}
+                    <span className="text-[10px] text-indigo-400 font-normal">
+                      (Incomplete profile)
+                    </span>
+                  </div>
+                ) : (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileOpen(false)}
+                    className={`block px-4 py-3 rounded-xl text-base font-bold transition ${
+                      isActive(item.path)
+                        ? "bg-indigo-50 text-indigo-600"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
               <div className="pt-3 border-t border-gray-100 mt-2">
                 <button
                   onClick={handleLogout}
@@ -115,7 +160,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </nav>
       )}
 
-      {/* Main Viewport Mount Element Injection Node */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
         {children}
       </main>

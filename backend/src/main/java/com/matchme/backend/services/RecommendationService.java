@@ -77,7 +77,6 @@ public class RecommendationService {
                 .filter(u -> !Objects.equals(u.getId(), effectiveUserId))
                 .collect(Collectors.toList());
 
-        
         return candidates.stream()
                 .map(candidate -> {
                     UserProfile candidateProfile = userProfileRepository.findById(candidate.getId()).orElse(null);
@@ -114,7 +113,7 @@ public class RecommendationService {
                     }
 
                     int score = computeScore(myBio, candidateBio, myProfile, candidateProfile);
- 
+
                     if (score < MIN_SCORE_THRESHOLD) {
                         return null;
                     }
@@ -182,11 +181,28 @@ public class RecommendationService {
         for (String interestA : a) {
             for (String interestB : b) {
                 if (interestA != null && interestB != null && interestA.equalsIgnoreCase(interestB)) {
-                    return true; 
+                    return true;
                 }
             }
         }
         return false;
+    }
+
+    public boolean isProfileComplete(User user) {
+        UserProfile profile = user.getUserProfile(); 
+        UserBio bio = user.getUserBio(); 
+
+        if (profile == null || bio == null) {
+            return false;
+        }
+
+        boolean hasCity = profile.getCity() != null && !profile.getCity().trim().isEmpty();
+        boolean hasGender = profile.getGender() != null && !profile.getGender().trim().isEmpty();
+        boolean hasLookingFor = bio.getLookingFor() != null && !bio.getLookingFor().trim().isEmpty();
+        boolean hasAge = profile.getAge() != null && profile.getAge() > 0;
+        boolean hasName = user.getName() != null && !user.getName().trim().isEmpty();
+
+        return hasCity && hasGender && hasLookingFor && hasAge && hasName;
     }
 
     private record ScoredCandidate(Long userId, int score) {

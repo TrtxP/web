@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { matchService } from "../services/matchService";
-import type { CitySuggestion, PrivateAggregatedProfile } from "../types";
+import type { CitySuggestion, PrivateAggregatedProfile, ProfileProps } from "../types";
 
 const AVAILABLE_INTERESTS = [
   "Music",
@@ -15,7 +16,10 @@ const AVAILABLE_INTERESTS = [
   "Photography",
 ];
 
-export const Profile: React.FC = () => {
+export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
+  const location = useLocation();
+  const showWarning = location.state?.forceFill === true;
+  
   const [profile, setProfile] = useState<PrivateAggregatedProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -257,6 +261,10 @@ export const Profile: React.FC = () => {
       setIsEditing(false);
 
       alert("Profile updated successfully!");
+
+      if (onProfileUpdate) {
+        onProfileUpdate();
+      }
     } catch (err) {
       console.error(`Error saving profile: ${err}`);
       alert("Failed save changes");
@@ -295,6 +303,17 @@ export const Profile: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
+      {showWarning && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-800 shadow-sm animate-pulse">
+          <span className="text-2xl">⚡</span>
+          <div>
+            <h4 className="font-bold text-sm">Please complete your profile!</h4>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Fill in your <strong>City</strong>, <strong>Gender</strong>, <strong>Age</strong>, and <strong>What you are looking for</strong> to get access to recommendations and other features.
+            </p>
+          </div>
+        </div>
+      )}
       <form
         onSubmit={handleSave}
         className="grid grid-cols-1 md:grid-cols-3 gap-8"

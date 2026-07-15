@@ -81,3 +81,23 @@ export interface CitySuggestion {
   lat: string;
   lon: string;
 }
+
+export interface LayoutProps {
+  children: React.ReactNode;
+  profileComplete?: boolean; 
+}
+
+export interface ProfileProps {
+  onProfileUpdate?: () => void;
+}
+
+export const isProfileComplete = (profile: PrivateAggregatedProfile | null): boolean => {
+  if (!profile) return false;
+  return !!(
+    profile.name?.trim() &&
+    profile.city?.trim() &&
+    profile.gender?.trim() &&
+    profile.age &&
+    profile.lookingFor?.trim()
+  );
+};

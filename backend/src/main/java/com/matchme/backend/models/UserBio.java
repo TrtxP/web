@@ -35,6 +35,6 @@ public class UserBio {
 
     private boolean likesLongWalks;
 
-    @Pattern(regexp = "^[a-zA-Z\\s',.-]+$", message = "Invalid information about searching")
+    @Pattern(regexp = "^[a-zA-Z\\s',.-]*$", message = "Invalid information about searching")
     private String lookingFor;
 }
