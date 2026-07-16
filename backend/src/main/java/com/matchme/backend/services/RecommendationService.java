@@ -63,13 +63,35 @@ public class RecommendationService {
 
         UserProfile myProfile = userProfileRepository.findById(effectiveUserId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Профіль користувача не заповнений — рекомендації недоступні"));
+                        "User profile isn't finished - recommendations aren't available."));
 
         UserBio myBio = userBioRepository.findById(effectiveUserId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Біографічні дані користувача не заповнені — рекомендації недоступні"));
+                        "Biographical data aren't finished - recommendations aren't available."));
 
         List<Long> excludedIds = new ArrayList<>(connectionRepository.findExcludedUserIds(userId));
+
+        String targetGender = null;
+        if (myBio.getLookingFor() != null) {
+            String lookingFor = myBio.getLookingFor().trim().toLowerCase();
+
+            if (lookingFor.equals("relationships") || lookingFor.equals("relationship")
+                    || lookingFor.contains("relation")) {
+                targetGender = "female";
+
+            } else if (lookingFor.equals("friends") || lookingFor.equals("friend")) {
+                targetGender = null;
+
+            } else {
+                if (lookingFor.contains("woman") || lookingFor.contains("women") || lookingFor.contains("female")) {
+                    targetGender = "female";
+                } else if (lookingFor.contains("man") || lookingFor.contains("men") || lookingFor.contains("male")) {
+                    targetGender = "male";
+                }
+            }
+        }
+
+        final String finalTargetGender = targetGender;
 
         List<User> candidates = userRepository.findAll().stream()
                 // filter out excluded and the current user
@@ -82,13 +104,27 @@ public class RecommendationService {
                     UserProfile candidateProfile = userProfileRepository.findById(candidate.getId()).orElse(null);
                     UserBio candidateBio = userBioRepository.findById(candidate.getId()).orElse(null);
 
-                    // Рекомендуємо лише тих, хто теж повністю заповнив профіль/біо
                     if (candidateProfile == null || candidateBio == null) {
                         return null;
                     }
 
-                    // Локейшн сенс-чек: спочатку намагаємось за містом, але дозволяємо
-                    // рекомендації в межах певної відстані між містами.
+                    if (finalTargetGender != null) {
+                        if (candidateProfile.getGender() == null ||
+                                !candidateProfile.getGender().equalsIgnoreCase(finalTargetGender)) {
+                            return null;
+                        }
+                    }
+
+                    if (myBio.isLikesLongWalks()) {
+                        if (!candidateBio.isLikesLongWalks()) {
+                            return null;
+                        }
+                    }
+
+                    if (!hasCommonInterests(myBio.getInterests(), candidateBio.getInterests())) {
+                        return null;
+                    }
+
                     if (myProfile.getCity() == null || candidateProfile.getCity() == null) {
                         return null;
                     }
@@ -140,7 +176,7 @@ public class RecommendationService {
         int score = 0;
 
         if (equalsIgnoreCaseSafeInterests(myBio.getInterests(), candidateBio.getInterests())) {
-            score += 2; // інтереси — найбільш вагомий фактор
+            score += 2;
         }
 
         if (equalsIgnoreCaseSafe(myBio.getFavoriteFood(), candidateBio.getFavoriteFood())) {
@@ -156,7 +192,7 @@ public class RecommendationService {
         }
 
         if (equalsIgnoreCaseSafe(myBio.getLookingFor(), candidateBio.getLookingFor())) {
-            score += 2; // те, що людина шукає — теж дуже вагомо
+            score += 2;
         }
 
         if (myProfile.getAge() != null && candidateProfile.getAge() != null) {
@@ -173,7 +209,7 @@ public class RecommendationService {
         return a != null && b != null && a.equalsIgnoreCase(b);
     }
 
-    private boolean equalsIgnoreCaseSafeInterests(String[] a, String[] b) {
+    private boolean hasCommonInterests(String[] a, String[] b) {
         if (a == null || b == null) {
             return false;
         }
@@ -188,9 +224,13 @@ public class RecommendationService {
         return false;
     }
 
+    private boolean equalsIgnoreCaseSafeInterests(String[] a, String[] b) {
+        return hasCommonInterests(a, b);
+    }
+
     public boolean isProfileComplete(User user) {
-        UserProfile profile = user.getUserProfile(); 
-        UserBio bio = user.getUserBio(); 
+        UserProfile profile = user.getUserProfile();
+        UserBio bio = user.getUserBio();
 
         if (profile == null || bio == null) {
             return false;

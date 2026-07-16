@@ -1,10 +1,5 @@
 package com.matchme.backend.controllers;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,8 +24,6 @@ import jakarta.validation.Valid;
 public class AuthController {
 
     private final UserRepository userRepository;
-    private final UserProfileRepository userProfileRepository;
-    private final UserBioRepository userBioRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
@@ -42,8 +35,6 @@ public class AuthController {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
-        this.userProfileRepository = userProfileRepository;
-        this.userBioRepository = userBioRepository;
     }
 
     @PostMapping("/login")

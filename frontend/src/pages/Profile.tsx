@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { matchService } from "../services/matchService";
-import type { CitySuggestion, PrivateAggregatedProfile, ProfileProps } from "../types";
+import type { CitySuggestion, PrivateAggregatedProfile, ProfileProps, EditProfileModalProps } from "../types";
+
 
 const AVAILABLE_INTERESTS = [
   "Music",
@@ -16,6 +17,122 @@ const AVAILABLE_INTERESTS = [
   "Photography",
 ];
 
+const EditProfileModal: React.FC<EditProfileModalProps> = ({
+  currentProfile,
+  onSave,
+  onClose,
+}) => {
+  const [selectedInterests, setSelectedInterests] = useState<string[]>(
+    Array.isArray(currentProfile.interests) ? currentProfile.interests : [],
+  );
+  const [likesLongWalks, setLikesLongWalks] = useState(
+    currentProfile.likesLongWalks || false,
+  );
+  const [lookingFor, setLookingFor] = useState(currentProfile.lookingFor || "");
+
+  const toggleInterest = (interest: string) => {
+    if (selectedInterests.includes(interest)) {
+      setSelectedInterests((prev) => prev.filter((item) => item !== interest));
+    } else {
+      if (selectedInterests.length < 8) {
+        setSelectedInterests((prev) => [...prev, interest]);
+      } else {
+        window.alert("You can select up to 8 interests!");
+      }
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      ...currentProfile,
+      interests: selectedInterests,
+      likesLongWalks,
+      lookingFor,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
+      >
+        <h2 className="mb-4 text-xl font-bold text-gray-900">Edit Profile</h2>
+
+        <div className="mb-4">
+          <label className="mb-2 block text-sm font-semibold text-gray-700">
+            Looking For
+          </label>
+          <select
+            value={lookingFor}
+            onChange={(e) => setLookingFor(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 p-2 text-sm outline-none"
+          >
+            <option value="">Not specified</option>
+            <option value="Friends">Friends</option>
+            <option value="Relationships">Relationships</option>
+          </select>
+        </div>
+
+        <div className="mb-4 flex items-center">
+          <input
+            type="checkbox"
+            id="walks"
+            checked={likesLongWalks}
+            onChange={(e) => setLikesLongWalks(e.target.checked)}
+            className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <label htmlFor="walks" className="text-sm font-semibold text-gray-700">
+            I love long walks 🚶‍♂️🚶‍♀️
+          </label>
+        </div>
+
+        <div className="mb-6">
+          <label className="mb-2 block text-sm font-semibold text-gray-700">
+            Interests ({selectedInterests.length}/8)
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {AVAILABLE_INTERESTS.map((interest) => {
+              const isSelected = selectedInterests.includes(interest);
+              return (
+                <button
+                  key={interest}
+                  type="button"
+                  onClick={() => toggleInterest(interest)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    isSelected
+                      ? "border-blue-600 bg-blue-600 text-white"
+                      : "border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {interest}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
+          >
+            Save
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
 export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
   const location = useLocation();
   const showWarning = location.state?.forceFill === true;
@@ -25,6 +142,7 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
   const [error, setError] = useState<string | null>(null);
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [isEditDetailsModalOpen, setIsEditDetailsModalOpen] = useState(false);
   const [editedData, setEditedData] = useState<
     Partial<PrivateAggregatedProfile>
   >({});
@@ -32,7 +150,7 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
 
-  const [citySearch, setCitySearch] = useState(editedData.city || "");
+  const [citySearch, setCitySearch] = useState("");
   const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -43,6 +161,9 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
         const data = await matchService.getMyFullProfile();
         setProfile(data);
         setEditedData(data);
+        if (data.city) {
+          setCitySearch(data.city);
+        }
       } catch (err) {
         console.error(`Error loading profile: ${err}`);
         setError("Failed load profile data");
@@ -92,6 +213,7 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
   const handleEditClick = () => {
     if (profile) {
       setEditedData({ ...profile });
+      setCitySearch(profile.city || "");
       setIsEditing(true);
     }
   };
@@ -106,38 +228,6 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
       ...prev,
       [name]: name === "preferredDistance" ? Number(value) : value,
     }));
-  };
-
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setEditedData((prev) => ({
-      ...prev,
-      [name]: checked,
-    }));
-  };
-
-  const handleInterestCheckboxChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const { value, checked } = e.target;
-
-    setEditedData((prev) => {
-      const currentInterests = prev.interests || [];
-      let updatedInterests: string[];
-
-      if (checked) {
-        updatedInterests = currentInterests.includes(value)
-          ? currentInterests
-          : [...currentInterests, value];
-      } else {
-        updatedInterests = currentInterests.filter((item) => item !== value);
-      }
-
-      return {
-        ...prev,
-        interests: updatedInterests,
-      };
-    });
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,6 +294,7 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
   const handleCancel = () => {
     setIsEditing(false);
     setEditedData({ ...profile });
+    setCitySearch(profile?.city || "");
   };
 
   const handleSelectCity = (suggestion: CitySuggestion) => {
@@ -216,6 +307,17 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
       latitude: parseFloat(suggestion.lat),
       longitude: parseFloat(suggestion.lon),
     }));
+  };
+
+  const handleDetailsModalSave = (
+    updatedProfile: Partial<PrivateAggregatedProfile>,
+  ) => {
+    setEditedData((prev) => ({
+      ...prev,
+      ...updatedProfile,
+      interests: updatedProfile.interests,
+    }));
+    setIsEditDetailsModalOpen(false);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -314,10 +416,20 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
           </div>
         </div>
       )}
+      
+      {isEditing && isEditDetailsModalOpen && (
+        <EditProfileModal
+          currentProfile={editedData}
+          onSave={handleDetailsModalSave}
+          onClose={() => setIsEditDetailsModalOpen(false)}
+        />
+      )}
+      
       <form
         onSubmit={handleSave}
         className="grid grid-cols-1 md:grid-cols-3 gap-8"
       >
+        {/* ЛІВА КОЛОНКА: Аватарка та основні дані */}
         <div className="md:col-span-1 bg-white border border-gray-100 rounded-2xl shadow-sm p-6 flex flex-col items-center text-center h-fit">
           <input
             type="file"
@@ -384,9 +496,6 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
             <div className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1 mb-3 flex items-center gap-1.5">
               <span>📧</span>
               <span className="font-mono select-all">{profile.email}</span>
-              <span className="text-[10px] text-blue-500 font-bold uppercase tracking-wider bg-blue-50 px-1.5 py-0.5 rounded">
-                Private
-              </span>
             </div>
           )}
 
@@ -445,6 +554,7 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
           )}
         </div>
 
+        {/* ПРАВА КОЛОНКА: Деталі, Інтереси, Додаткові інпути */}
         <div className="md:col-span-2 space-y-6">
           {/* СЕКЦІЯ: About Me */}
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
@@ -469,36 +579,40 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
             )}
           </div>
 
+          {/* СЕКЦІЯ: Інтереси */}
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
               <span>🔥</span> Interests & Hobbies
             </h3>
             {isEditing ? (
               <div className="space-y-3">
-                <p className="text-xs text-gray-400">Select your interests:</p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {AVAILABLE_INTERESTS.map((interest) => {
-                    const isChecked = (editedData.interests || []).includes(
-                      interest,
-                    );
-                    return (
-                      <label
-                        key={interest}
-                        className="flex items-center gap-2.5 p-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200/60 cursor-pointer transition-colors"
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-gray-400">
+                    Choose the hobbies that describe you:
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditDetailsModalOpen(true)}
+                    className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+                  >
+                    Edit details
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(editedData.interests || []).length > 0 ? (
+                    (editedData.interests || []).map((interest, index) => (
+                      <span
+                        key={index}
+                        className="bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-lg border border-blue-100/50"
                       >
-                        <input
-                          type="checkbox"
-                          value={interest}
-                          checked={isChecked}
-                          onChange={handleInterestCheckboxChange}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span className="text-sm font-medium text-gray-700 select-none">
-                          {interest}
-                        </span>
-                      </label>
-                    );
-                  })}
+                        {interest}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-400">
+                      No interests selected yet.
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (
@@ -521,24 +635,25 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
             )}
           </div>
 
+          {/* СЕКЦІЯ: Налаштування та критерії */}
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="p-3 bg-gray-50 rounded-xl">
               <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
                 Looking For
               </span>
               {isEditing ? (
-                <select
-                  name="lookingFor"
-                  value={editedData.lookingFor || ""}
-                  onChange={handleInputChange}
-                  className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none cursor-pointer focus:border-blue-500"
-                >
-                  <option value="" disabled>
-                    Select what are you looking for
-                  </option>
-                  <option value="Friends">Friends</option>
-                  <option value="Relationship">Relationship</option>
-                </select>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditDetailsModalOpen(true)}
+                    className="text-sm font-semibold text-blue-600 hover:text-blue-700 block"
+                  >
+                    Edit
+                  </button>
+                  <div className="text-sm font-semibold text-gray-700">
+                    {editedData.lookingFor || "Not specified"}
+                  </div>
+                </div>
               ) : (
                 <span className="text-sm font-semibold text-gray-700">
                   {profile.lookingFor || "Not specified"}
@@ -591,18 +706,20 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
                 Long Walks
               </span>
               {isEditing ? (
-                <label className="inline-flex items-center gap-2 cursor-pointer mt-1">
-                  <input
-                    type="checkbox"
-                    name="likesLongWalks"
-                    checked={!!editedData.likesLongWalks}
-                    onChange={handleCheckboxChange}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-semibold text-gray-700 select-none">
-                    Loves long walks
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditDetailsModalOpen(true)}
+                    className="text-sm font-semibold text-blue-600 hover:text-blue-700 block"
+                  >
+                    Edit
+                  </button>
+                  <span className="text-sm font-semibold text-gray-700 block">
+                    {editedData.likesLongWalks
+                      ? "❤️ Loves long walks"
+                      : "🤷‍♂️ Doesn't care much"}
                   </span>
-                </label>
+                </div>
               ) : (
                 <span className="text-sm font-semibold text-gray-700">
                   {profile.likesLongWalks
@@ -612,86 +729,44 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
               )}
             </div>
 
+            {/* Блок міста і віку, який з'являється при редагуванні */}
             {isEditing && (
               <>
-                <div className="p-4 bg-gray-50 rounded-2xl space-y-4">
-                  <div>
-                    <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
-                      City
-                    </span>
-                    {isEditing ? (
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={citySearch}
-                          onChange={(e) => setCitySearch(e.target.value)}
-                          className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-500"
-                          placeholder="Type city name..."
-                        />
+                <div className="p-3 bg-gray-50 rounded-xl relative">
+                  <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                    City
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={citySearch}
+                      onChange={(e) => setCitySearch(e.target.value)}
+                      className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-500"
+                      placeholder="Type city name..."
+                    />
 
-                        {suggestions.length > 0 && (
-                          <ul className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg max-h-48 overflow-y-auto shadow-lg">
-                            {suggestions.map((s, index) => (
-                              <li
-                                key={index}
-                                onClick={() => handleSelectCity(s)}
-                                className="p-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-none"
-                              >
-                                {s.display_name}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                        {isSearching && (
-                          <span className="absolute right-3 top-3 text-xs text-gray-400">
-                            Searching...
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-sm font-semibold text-gray-700 block">
-                        {profile.city || "Not specified"}
+                    {suggestions.length > 0 && citySearch.trim() !== "" && citySearch !== (profile.city || editedData.city) && (
+                      <ul className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg max-h-48 overflow-y-auto shadow-lg">
+                        {suggestions.map((s, index) => (
+                          <li
+                            key={index}
+                            onClick={() => {
+                              handleSelectCity(s);
+                              setSuggestions([]);
+                            }}
+                            className="p-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-none"
+                          >
+                            {s.display_name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {isSearching && (
+                      <span className="absolute right-3 top-3 text-xs text-gray-400">
+                        Searching...
                       </span>
                     )}
                   </div>
-
-                  {(editedData.city || profile.city) && (
-                    <div className="border-t border-gray-200/60 pt-3">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs text-gray-400 uppercase font-bold">
-                          Search Radius
-                        </span>
-                        <span className="text-xs font-bold text-blue-600">
-                          {isEditing
-                            ? `${editedData.preferredDistance || 50} km`
-                            : `${profile.preferredDistance || 50} km`}
-                        </span>
-                      </div>
-
-                      {isEditing ? (
-                        <input
-                          type="range"
-                          name="preferredDistance"
-                          min="5"
-                          max="900"
-                          step="5"
-                          value={editedData.preferredDistance || 50}
-                          onChange={handleInputChange}
-                          className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                        />
-                      ) : (
-                        <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
-                          {/* Візуальна шкала у режимі перегляду */}
-                          <div
-                            className="bg-blue-500 h-1.5 rounded-full"
-                            style={{
-                              width: `${((profile.preferredDistance || 50) / 150) * 100}%`,
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 <div className="p-3 bg-gray-50 rounded-xl">
@@ -704,7 +779,9 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
                     value={editedData.age || ""}
                     onChange={handleInputChange}
                     className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none"
-                    placeholder="Age"
+                    placeholder="e.g. 21"
+                    min="18"
+                    max="100"
                   />
                 </div>
 
@@ -712,24 +789,30 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
                   <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
                     Gender
                   </span>
-                  {isEditing ? (
-                    <select
-                      name="gender"
-                      value={editedData.gender || ""}
-                      onChange={handleInputChange}
-                      className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none cursor-pointer focus:border-blue-500"
-                    >
-                      <option value="" disabled>
-                        Select your gender
-                      </option>
-                      <option value="male">male</option>
-                      <option value="female">female</option>
-                    </select>
-                  ) : (
-                    <span className="text-sm font-semibold text-gray-700">
-                      {profile.gender || "Not specified"}
-                    </span>
-                  )}
+                  <select
+                    name="gender"
+                    value={editedData.gender || ""}
+                    onChange={handleInputChange}
+                    className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none"
+                  >
+                    <option value="">Select gender</option>
+                    <option value="male">male</option>
+                    <option value="female">female</option>
+                  </select>
+                </div>
+
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                    Preferred Distance (km)
+                  </span>
+                  <input
+                    type="number"
+                    name="preferredDistance"
+                    value={editedData.preferredDistance || ""}
+                    onChange={handleInputChange}
+                    className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none"
+                    placeholder="e.g. 50"
+                  />
                 </div>
               </>
             )}

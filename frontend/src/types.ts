@@ -91,6 +91,12 @@ export interface ProfileProps {
   onProfileUpdate?: () => void;
 }
 
+export interface EditProfileModalProps {
+  currentProfile: Partial<PrivateAggregatedProfile>;
+  onSave: (profile: Partial<PrivateAggregatedProfile>) => void;
+  onClose: () => void;
+};
+
 export const isProfileComplete = (profile: PrivateAggregatedProfile | null): boolean => {
   if (!profile) return false;
   return !!(
