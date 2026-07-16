@@ -1,27 +1,24 @@
 import React, { useEffect, useState, useRef } from "react";
 import { api } from "../services/matchService";
 import { websocketService } from "../services/websocket";
+import { matchService } from "../services/matchService";
 import type { ChatMessageDTO, TypingIndicatorDTO } from "../types";
 
 export const Chat: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessageDTO[]>([]);
   const [inputValue, setInputValue] = useState("");
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [activeChatId, setActiveChatId] = useState<number | null>(null);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentUserId = 1;
 
+  // Load chat history and subscribe to real-time updates
   useEffect(() => {
     if (!activeChatId) return;
 
-    const token = localStorage.getItem("token");
-    if (token) {
-      websocketService.connect(token);
-    }
-
-    // Fetches base chat slice
+    // Fetch initial chat history
     api
       .get<ChatMessageDTO[]>(`/chats/${activeChatId}/messages?page=0&size=30`)
       .then((res) => {
@@ -33,12 +30,13 @@ export const Chat: React.FC = () => {
       })
       .catch((err) => console.error(`Failed to load chat history: ${err}`));
 
+    // Subscribe to messages for the specific chat room via topic
     const unsubMsg = websocketService.subscribe(
-      "/user/queue/messages",
+      `/topic/chat.${activeChatId}`,
       (rawPayload) => {
         const msg = rawPayload as ChatMessageDTO;
 
-        if (msg.chatId === Number(activeChatId)) {
+        if (msg.chatId === activeChatId) {
           setMessages((prev) => {
             if (
               prev.some(
@@ -46,7 +44,7 @@ export const Chat: React.FC = () => {
               )
             )
               return prev;
-            return { ...prev, msg };
+            return [...prev, msg];
           });
           setTimeout(
             () => scrollRef.current?.scrollIntoView({ behavior: "smooth" }),
@@ -56,8 +54,9 @@ export const Chat: React.FC = () => {
       },
     );
 
+    // Subscribe to typing indicator for this specific chat
     const unsubTyping = websocketService.subscribe(
-      "/topic/chat/${activeChatId}/typing",
+      `/topic/chat.${activeChatId}.typing`,
       (rawPayload) => {
         const status = rawPayload as TypingIndicatorDTO;
 
@@ -77,15 +76,16 @@ export const Chat: React.FC = () => {
     setInputValue(e.target.value);
     if (!activeChatId) return;
 
-    websocketService.send("/app/chat/typing", {
-      chatId: Number(activeChatId),
-      typing: true,
+    // Send typing indicator
+    websocketService.send("/app/chat.typing", {
+      chatId: activeChatId,
+      typing: e.target.value.length > 0,
     });
 
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
     typingTimeout.current = setTimeout(() => {
-      websocketService.send("/app/chat/typing", {
-        chatId: Number(activeChatId),
+      websocketService.send("/app/chat.typing", {
+        chatId: activeChatId,
         typing: false,
       });
     }, 1500);
@@ -95,21 +95,26 @@ export const Chat: React.FC = () => {
     e.preventDefault();
     if (!inputValue.trim() || !activeChatId) return;
 
-    const payload = { content: inputValue };
+    const payload = {
+      chatId: activeChatId,
+      content: inputValue.trim(),
+    };
+
     try {
-      const res = await api.post<ChatMessageDTO>(
-        `/chats/${activeChatId}/messages`,
-        payload,
-      );
-      setMessages((prev) => [...prev, res.data]);
+      // Send message via WebSocket
+      websocketService.send("/app/chat.send", payload);
       setInputValue("");
-      websocketService.send("/app/chat/typing", { chatId: Number(activeChatId), typing: false });
+      // Send typing stopped indicator
+      websocketService.send("/app/chat.typing", {
+        chatId: activeChatId,
+        typing: false,
+      });
       setTimeout(
         () => scrollRef.current?.scrollIntoView({ behavior: "smooth" }),
         50,
       );
     } catch (err) {
-      console.error(`Failed to send message via HTTP: ${err}`);
+      console.error(`Failed to send message: ${err}`);
     }
   };
 
@@ -118,8 +123,8 @@ export const Chat: React.FC = () => {
       <div className="bg-white border rounded-2xl p-4 space-y-2 overflow-y-auto">
         <h3 className="font-bold text-lg mb-4">Open Conversations</h3>
         <button
-          onClick={() => setActiveChatId("1")}
-          className={`w-full text-left p-3 rounded-xl transition font-medium text-sm border ${activeChatId === "1" ? "bg-indigo-50 border-indigo-200 text-indigo-700" : "hover:bg-gray-50"}`}
+          onClick={() => setActiveChatId(1)}
+          className={`w-full text-left p-3 rounded-xl transition font-medium text-sm border ${activeChatId === 1 ? "bg-indigo-50 border-indigo-200 text-indigo-700" : "hover:bg-gray-50"}`}
         >
           💬 Demonstration Chat Thread
         </button>
