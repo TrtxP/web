@@ -160,4 +160,15 @@ export const matchService = {
   deleteProfilePicture: async (): Promise<void> => {
     await api.delete("/me/profile-picture");
   },
+  getOrCreateChat: async (myId: number, targetUserId: number): Promise<number> => {
+    try {
+      const res = await api.post<{ id: number }>("/chats", {
+        participantId: targetUserId,
+      });
+      return res.data.id;
+    } catch (err) {
+      console.error(`Failed to get or create chat: ${err}`);
+      throw err;
+    }
+  },
 };

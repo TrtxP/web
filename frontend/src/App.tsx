@@ -7,6 +7,7 @@ import { Chat } from "./pages/Chat";
 import { Profile } from "./pages/Profile";
 import Connections from "./pages/Connections";
 import { matchService } from "./services/matchService";
+import { websocketService } from "./services/websocket";
 import { type PrivateAggregatedProfile, isProfileComplete } from "./types";
 
 
@@ -55,6 +56,9 @@ function App() {
     };
 
     loadProfile();
+
+    // Initialize WebSocket connection when token is available
+    websocketService.connect(token);
 
     return () => {
       active = false;
