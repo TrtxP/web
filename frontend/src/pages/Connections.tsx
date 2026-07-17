@@ -8,6 +8,7 @@ import { FullProfileModal } from "../components/FullProfileModal";
 import { useNavigate } from "react-router-dom"; // Для швидкого переходу в чат
 import type { ConnectionAggregatedProfile } from "../types";
 
+
 const Connections: React.FC = () => {
   const [connections, setConnections] = useState<ConnectionAggregatedProfile[]>(
     [],
@@ -194,9 +195,6 @@ const Connections: React.FC = () => {
         <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400">
           No active connections yet. Start matching!
         </div>
-        <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400">
-          No active connections yet. Start matching!
-        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {connections.map((user) => (
@@ -214,7 +212,6 @@ const Connections: React.FC = () => {
                     className="w-full h-full object-cover rounded-full border-2 border-white shadow-sm"
                   />
                 ) : (
-                  <div className="w-full h-full rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-4xl font-bold shadow-inner">
                   <div className="w-full h-full rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-4xl font-bold shadow-inner">
                     {user.name?.charAt(0).toUpperCase()}
                   </div>
@@ -253,33 +250,9 @@ const Connections: React.FC = () => {
                   Start Chat
                 </button>
               </div>
-
-              {/* Кнопки дій */}
-              <div className="flex gap-3 w-full mt-auto">
-                <button
-                  onClick={(e) => handleDisconnect(user.id, e)}
-                  className="flex-1 bg-white hover:bg-red-50 text-red-500 border border-red-200 font-semibold py-2 rounded text-sm transition-colors"
-                >
-                  Disconnect
-                </button>
-                <button
-                  onClick={(e) => handleStartChat(user.id, e)}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded text-sm transition-colors"
-                >
-                  Start Chat
-                </button>
-              </div>
             </div>
           ))}
         </div>
-      )}
-
-      {/* Модалка детального перегляду */}
-      {selectedProfile && (
-        <FullProfileModal
-          profile={selectedProfile}
-          onClose={() => setSelectedProfile(null)}
-        />
       )}
 
       {/* Модалка детального перегляду */}
