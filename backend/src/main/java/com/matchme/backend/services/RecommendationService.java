@@ -130,6 +130,12 @@ public class RecommendationService {
                     }
 
                     if (!myProfile.getCity().equalsIgnoreCase(candidateProfile.getCity())) {
+                        if (Boolean.TRUE.equals(myProfile.getRecommendByCityOnly())) {
+                            // Користувач хоче бачити рекомендації лише зі свого міста —
+                            // геодистанція в цьому режимі не враховується взагалі.
+                            return null;
+                        }
+
                         if (myProfile.getLatitude() == null || myProfile.getLongitude() == null
                                 || candidateProfile.getLatitude() == null || candidateProfile.getLongitude() == null) {
                             return null;

@@ -11,4 +11,5 @@ public class UserProfileResponseDTO {
     private Double latitude;
     private Double longitude;
     private Integer preferredDistance;
+    private Boolean recommendByCityOnly;
 }

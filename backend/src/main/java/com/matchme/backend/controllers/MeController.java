@@ -112,6 +112,7 @@ public class MeController {
         dto.setLatitude(profile.getLatitude());
         dto.setLongitude(profile.getLongitude());
         dto.setPreferredDistance(profile.getPreferredDistance());
+        dto.setRecommendByCityOnly(profile.getRecommendByCityOnly());
         return ResponseEntity.status(HttpStatus.OK).body(dto);
     }
 

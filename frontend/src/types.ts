@@ -34,6 +34,7 @@ export interface UserProfileDTO {
   latitude: number;
   longitude: number;
   preferredDistance: number;
+  recommendByCityOnly: boolean;
 }
 
 export interface UserBioDTO {
