@@ -7,6 +7,7 @@ import type {
   AggregatedProfile,
   PrivateAggregatedProfile,
   MyPrivateUserDTO,
+  ConnectionAggregatedProfile,
 } from "../types";
 
 const API_URL = "http://localhost:8080";
@@ -84,7 +85,7 @@ export const matchService = {
     return res.data.map((item) => item.id);
   },
   // Додати в matchService всередині types.ts / matchService.ts
-  getFullConnections: async (): Promise<AggregatedProfile[]> => {
+  getFullConnections: async (): Promise<ConnectionAggregatedProfile[]> => {
     try {
       const ids = await matchService.getConnections(); // Отримуємо [4, 12...]
 
@@ -101,7 +102,7 @@ export const matchService = {
         }),
       );
 
-      return fullProfiles.filter((p): p is AggregatedProfile => p !== null);
+      return fullProfiles.filter((p): p is ConnectionAggregatedProfile => p !== null);
     } catch (err) {
       console.error(`Failed to load full connections: ${err}`);
       throw err;

@@ -1,35 +1,35 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    react()
-  ],
+  plugins: [react()],
 
   server: {
     host: true,
 
     allowedHosts: [
-      '.ngrok-free.app',
-      '.ngrok.io',
-      'overgrateful-mirtha-austerely.ngrok-free.dev'
+      ".ngrok-free.app",
+      ".ngrok.io",
+      "overgrateful-mirtha-austerely.ngrok-free.dev",
     ],
 
     proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
+      "/api": {
+        target: "http://localhost:8080",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
+        rewrite: (path) => path.replace(/^\/api/, ""),
       },
-      '/ws': {
-        target: 'ws://localhost:8080',
-        ws: true
-      }
+      "/ws": {
+        target: "ws://localhost:8080",
+        ws: true,
+      },
     },
 
     hmr: {
-      clientPort: 443
-    }
-  }
-})
+      // Якщо підключення йде через ngrok (встановіть змінну середовища NGROK=true),
+      // використовуємо порт 443, інакше — стандартний
+      clientPort: process.env.NGROK === "true" ? 443 : undefined,
+    },
+  },
+});

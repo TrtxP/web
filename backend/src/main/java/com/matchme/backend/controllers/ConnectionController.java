@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.matchme.backend.config.CurrentUserProvider;
+import com.matchme.backend.dto.ConnectionDTO;
 import com.matchme.backend.dto.IdResponseDTO;
 import com.matchme.backend.services.ConnectionService;
 
@@ -42,12 +43,30 @@ public class ConnectionController {
         return ResponseEntity.ok(result);
     }
 
+    // Отримати конкретне з'єднання за ID
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getConnectionById(@PathVariable Long id) {
+        Long userId = currentUserProvider.getCurrentUserId();
+
+        // Тут має бути виклик сервісу, який дістає connection
+        // і бажано перевіряє, чи належить він поточному userId
+        var connection = connectionService.getConnectionById(id, userId);
+
+        ConnectionDTO dto = new ConnectionDTO(
+                connection.getId(),
+                connection.getRequester().getId(),
+                connection.getReceiver().getId(),
+                connection.getStatus().name());
+
+        return ResponseEntity.ok(dto);
+    }
+
     // Вхідні запити на з'єднання, що очікують рішення
     @GetMapping("/requests")
     public ResponseEntity<?> getIncomingRequests(HttpServletRequest request) {
         Long userId = currentUserProvider.getCurrentUserId();
         List<IdResponseDTO> result = connectionService.getIncomingRequests(userId).stream()
-                .map(c -> new IdResponseDTO(c.getRequester().getId()))
+                .map(c -> new IdResponseDTO(c.getId()))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(result);
     }

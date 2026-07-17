@@ -12,7 +12,7 @@ class WebSocketService {
 
     // Connects matching your backend ChatWebSocketController rules
     this.client = new Client({
-      brokerURL: `ws://localhost:8080/ws/websocket`,
+      brokerURL: `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws/websocket`,
       connectHeaders: {
         Authorization: `Bearer ${token}`,
       },

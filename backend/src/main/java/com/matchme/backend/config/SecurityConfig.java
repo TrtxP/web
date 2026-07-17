@@ -78,6 +78,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/users").permitAll()
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/users/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         // Захищені ресурси

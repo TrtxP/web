@@ -59,11 +59,20 @@ export interface TypingIndicatorDTO {
   typing: boolean;
 }
 
+interface ConnectionUserDTO {
+  connectionId: number;
+  name: string;
+  profilePictureUrl: string;
+}
+
 export interface AggregatedProfile
   extends UserDTO, UserProfileDTO, UserBioDTO {}
 
 export interface PrivateAggregatedProfile
   extends MyPrivateUserDTO, UserProfileDTO, UserBioDTO {}
+
+export interface ConnectionAggregatedProfile
+  extends ConnectionUserDTO, UserProfileDTO, UserBioDTO {}
 
 export interface FullUserInformation {
   id: number;
@@ -84,7 +93,7 @@ export interface CitySuggestion {
 
 export interface LayoutProps {
   children: React.ReactNode;
-  profileComplete?: boolean; 
+  profileComplete?: boolean;
 }
 
 export interface ProfileProps {
@@ -95,9 +104,11 @@ export interface EditProfileModalProps {
   currentProfile: Partial<PrivateAggregatedProfile>;
   onSave: (profile: Partial<PrivateAggregatedProfile>) => void;
   onClose: () => void;
-};
+}
 
-export const isProfileComplete = (profile: PrivateAggregatedProfile | null): boolean => {
+export const isProfileComplete = (
+  profile: PrivateAggregatedProfile | null,
+): boolean => {
   if (!profile) return false;
   return !!(
     profile.name?.trim() &&

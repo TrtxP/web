@@ -33,6 +33,24 @@ public class ConnectionService {
         return connectionRepository.findByReceiverIdAndStatus(userId, ConnectionStatus.PENDING);
     }
 
+    public Connection getConnectionById(Long id, Long currentUserId) {
+        // 1. Шукаємо з'єднання в БД
+        Connection connection = connectionRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Connection not found"));
+
+        // 2. Витягуємо ID учасників з'єднання (підстав свої методи/поля сутності)
+        Long requesterId = connection.getRequester().getId();
+        Long receiverId = connection.getReceiver().getId();
+
+        // 3. Перевіряємо, чи поточний юзер є учасником цього зв'язку
+        if (!currentUserId.equals(requesterId) && !currentUserId.equals(receiverId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You do not have permission to view this connection");
+        }
+
+        return connection;
+    }
+
     public Connection requestConnection(Long requesterId, Long receiverId) {
         if (requesterId.equals(receiverId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Не можна з'єднатись із самим собою");
