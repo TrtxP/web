@@ -64,6 +64,7 @@ public class UserProfileService {
         existingProfile.setLatitude(newProfile.getLatitude());
         existingProfile.setLongitude(newProfile.getLongitude());
         existingProfile.setPreferredDistance(newProfile.getPreferredDistance());
+        existingProfile.setRecommendByCityOnly(newProfile.getRecommendByCityOnly());
 
         return userProfileRepository.save(existingProfile);
     }
@@ -103,6 +104,10 @@ public class UserProfileService {
 
         if (updatedFields.getPreferredDistance() != null) {
             existingProfile.setPreferredDistance(updatedFields.getPreferredDistance());
+        }
+
+        if (updatedFields.getRecommendByCityOnly() != null) {
+            existingProfile.setRecommendByCityOnly(updatedFields.getRecommendByCityOnly());
         }
 
         return userProfileRepository.save(existingProfile);

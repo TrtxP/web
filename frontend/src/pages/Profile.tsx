@@ -340,6 +340,7 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
         preferredDistance: editedData.preferredDistance
           ? Number(editedData.preferredDistance)
           : undefined,
+        recommendByCityOnly: editedData.recommendByCityOnly,
       };
 
       const bioDTO = {
@@ -730,6 +731,35 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
             </div>
 
             {/* Блок міста і віку, який з'являється при редагуванні */}
+            {/* Налаштування рекомендацій за містом */}
+            <div className="p-3 bg-gray-50 rounded-xl flex flex-col justify-between">
+              <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                Recommendations
+              </span>
+              {isEditing ? (
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!editedData.recommendByCityOnly}
+                    onChange={(e) =>
+                      setEditedData((prev) => ({
+                        ...prev,
+                        recommendByCityOnly: e.target.checked,
+                      }))
+                    }
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Show only my city
+                </label>
+              ) : (
+                <span className="text-sm font-semibold text-gray-700">
+                  {profile.recommendByCityOnly
+                    ? "🏙️ Only my city"
+                    : "🌍 My city + nearby (by distance)"}
+                </span>
+              )}
+            </div>
+
             {isEditing && (
               <>
                 <div className="p-3 bg-gray-50 rounded-xl relative">
@@ -810,9 +840,19 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
                     name="preferredDistance"
                     value={editedData.preferredDistance || ""}
                     onChange={handleInputChange}
-                    className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none"
+                    disabled={!!editedData.recommendByCityOnly}
+                    className={`w-full p-2 border border-gray-200 rounded-lg text-sm outline-none ${
+                      editedData.recommendByCityOnly
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-white"
+                    }`}
                     placeholder="e.g. 50"
                   />
+                  {editedData.recommendByCityOnly && (
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      Ignored while "Show only my city" is enabled
+                    </p>
+                  )}
                 </div>
               </>
             )}

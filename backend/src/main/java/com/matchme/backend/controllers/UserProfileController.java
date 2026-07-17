@@ -38,6 +38,7 @@ public class UserProfileController {
         userProfileResponseDTO.setLatitude(userProfile.getLatitude());
         userProfileResponseDTO.setLongitude(userProfile.getLongitude());
         userProfileResponseDTO.setPreferredDistance(userProfile.getPreferredDistance());
+        userProfileResponseDTO.setRecommendByCityOnly(userProfile.getRecommendByCityOnly());
         return ResponseEntity.status(HttpStatus.OK).body(userProfileResponseDTO);
     }
 
@@ -54,7 +55,8 @@ public class UserProfileController {
     }
 
     @PatchMapping("/{id}/profile")
-    public ResponseEntity<?> updateUserProfilePartial(@PathVariable Long id, @RequestBody UserProfile updatUserProfile) {
+    public ResponseEntity<?> updateUserProfilePartial(@PathVariable Long id,
+            @RequestBody UserProfile updatUserProfile) {
         UserProfile existingUserProfile = userProfileService.updateProfilePartial(id, updatUserProfile);
         return ResponseEntity.status(HttpStatus.OK).body(existingUserProfile);
     }

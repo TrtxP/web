@@ -34,6 +34,7 @@ export interface UserProfileDTO {
   latitude: number;
   longitude: number;
   preferredDistance: number;
+  recommendByCityOnly: boolean;
 }
 
 export interface UserBioDTO {
@@ -84,7 +85,7 @@ export interface CitySuggestion {
 
 export interface LayoutProps {
   children: React.ReactNode;
-  profileComplete?: boolean; 
+  profileComplete?: boolean;
 }
 
 export interface ProfileProps {
@@ -95,9 +96,11 @@ export interface EditProfileModalProps {
   currentProfile: Partial<PrivateAggregatedProfile>;
   onSave: (profile: Partial<PrivateAggregatedProfile>) => void;
   onClose: () => void;
-};
+}
 
-export const isProfileComplete = (profile: PrivateAggregatedProfile | null): boolean => {
+export const isProfileComplete = (
+  profile: PrivateAggregatedProfile | null,
+): boolean => {
   if (!profile) return false;
   return !!(
     profile.name?.trim() &&

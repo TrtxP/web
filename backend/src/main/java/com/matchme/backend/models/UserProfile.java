@@ -31,7 +31,8 @@ public class UserProfile {
     private String aboutMe;
 
     @Size(max = 100)
-    // Allow letters from any language (including Cyrillic), digits, spaces and common punctuation used in
+    // Allow letters from any language (including Cyrillic), digits, spaces and
+    // common punctuation used in
     // location names (apostrophe, hyphen, comma, period, parentheses).
     @Pattern(regexp = "^[\\p{L}\\d\\s'\\-.,()]*$", message = "Invalid city name")
     private String city;
@@ -47,4 +48,11 @@ public class UserProfile {
     private Double longitude;
 
     private Integer preferredDistance = 50;
+
+    // Якщо true — рекомендації показуються лише користувачам з того самого
+    // міста (city, точний збіг без урахування регістру), геодистанція
+    // (latitude/longitude/preferredDistance) при цьому ігнорується.
+    // Boolean (не примітив), щоб коректно розрізняти "поле не передане"
+    // від "явно встановлено false" при PATCH — так само, як з likesLongWalks.
+    private Boolean recommendByCityOnly = false;
 }
