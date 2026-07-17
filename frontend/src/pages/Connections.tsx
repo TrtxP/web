@@ -223,7 +223,7 @@ const Connections: React.FC = () => {
 
               {/* Інфо */}
               <div className="mb-4 w-full">
-                <h3 className="text-2xl font-bold text-gray-900 line-clamp-1">
+                <h3 className="text-2xl font-bold text-gray-900">
                   {user.name}
                   {user.age ? `, ${user.age}` : ""}
                 </h3>
@@ -239,7 +239,7 @@ const Connections: React.FC = () => {
               <div className="flex gap-3 w-full mt-auto">
                 <button
                   onClick={(e) => handleDisconnect(user.id, e)}
-                  className="flex-1 bg-white hover:bg-red-50 text-red-500 border border-red-200 font-semibold py-2 rounded text-sm transition-colors"
+                  className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-2 rounded text-sm transition-colors"
                 >
                   Disconnect
                 </button>
