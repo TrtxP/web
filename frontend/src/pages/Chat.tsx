@@ -3,16 +3,44 @@ import { api } from "../services/matchService";
 import { websocketService } from "../services/websocket";
 import { matchService } from "../services/matchService";
 import type { ChatMessageDTO, TypingIndicatorDTO } from "../types";
+import { useSearchParams } from "react-router-dom";
 
 export const Chat: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessageDTO[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [activeChatId, setActiveChatId] = useState<number | null>(null);
+  const [partnerName, setPartnerName] = useState<string | null>(null);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [searchParams] = useSearchParams();
+  const userIdParam = searchParams.get("userId");
+  const targetUserId = userIdParam ? Number(userIdParam) : null;
 
-  const currentUserId = 1;
+  useEffect(() => {
+    api
+      .get<{ id: number }>("/me")
+      .then((res) => setCurrentUserId(res.data.id))
+      .catch((err) => console.error(`Failed to fetch current user: ${err}`));
+  }, []);
+
+  useEffect(() => {
+    if (!targetUserId) return;
+
+    const loadChat = async () => {
+      try {
+        const chatId = await matchService.getOrCreateChat(targetUserId);
+        setActiveChatId(chatId);
+        const partnerRes = await api.get<{ id: number; name: string }>(`/users/${targetUserId}`);
+        setPartnerName(partnerRes.data.name);
+      } catch (err) {
+        console.error(`Failed to initialize chat for user ${targetUserId}: ${err}`);
+      }
+    };
+
+    loadChat();
+  }, [targetUserId]);
 
   // Load chat history and subscribe to real-time updates
   useEffect(() => {
@@ -70,7 +98,7 @@ export const Chat: React.FC = () => {
       unsubMsg();
       unsubTyping();
     };
-  }, [activeChatId]);
+  }, [activeChatId, currentUserId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
@@ -122,6 +150,14 @@ export const Chat: React.FC = () => {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-8rem)]">
       <div className="bg-white border rounded-2xl p-4 space-y-2 overflow-y-auto">
         <h3 className="font-bold text-lg mb-4">Open Conversations</h3>
+        {activeChatId && partnerName ? (
+          <button
+            onClick={() => setActiveChatId(activeChatId)}
+            className={`w-full text-left p-3 rounded-xl transition font-medium text-sm border ${activeChatId ? "bg-indigo-50 border-indigo-200 text-indigo-700" : "hover:bg-gray-50"}`}
+          >
+            💬 {partnerName}
+          </button>
+        ) : null}
         <button
           onClick={() => setActiveChatId(1)}
           className={`w-full text-left p-3 rounded-xl transition font-medium text-sm border ${activeChatId === 1 ? "bg-indigo-50 border-indigo-200 text-indigo-700" : "hover:bg-gray-50"}`}
@@ -134,7 +170,9 @@ export const Chat: React.FC = () => {
         {activeChatId ? (
           <>
             <div className="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
-              <span className="font-bold">Conversation Window</span>
+              <span className="font-bold">
+                {partnerName ? `Chat with ${partnerName}` : "Conversation Window"}
+              </span>
               {partnerTyping && (
                 <span className="text-xs font-semibold text-indigo-600 animate-pulse">
                   💬 Partner is typing...

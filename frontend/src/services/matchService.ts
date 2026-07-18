@@ -161,7 +161,7 @@ export const matchService = {
   deleteProfilePicture: async (): Promise<void> => {
     await api.delete("/me/profile-picture");
   },
-  getOrCreateChat: async (myId: number, targetUserId: number): Promise<number> => {
+  getOrCreateChat: async (targetUserId: number): Promise<number> => {
     try {
       const res = await api.post<{ id: number }>("/chats", {
         participantId: targetUserId,
