@@ -10,26 +10,22 @@ import { matchService } from "./services/matchService";
 import { websocketService } from "./services/websocket";
 import { type PrivateAggregatedProfile, isProfileComplete } from "./types";
 
-
 function App() {
   const [profile, setProfile] = useState<PrivateAggregatedProfile | null>(null);
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState<boolean>(() => !!token);
 
-  // Функція для оновлення стейту профілю з будь-якого дочірнього компонента (наприклад, після збереження у Profile.tsx)
+  // Функція для оновлення стейту профілю (викликається після збереження в Profile.tsx)
   const fetchProfile = async () => {
     if (!token) {
       setLoading(false);
       return;
     }
-    setLoading(true);
     try {
       const data = await matchService.getMyFullProfile();
       setProfile(data);
     } catch (err) {
       console.error("Error loading profile status:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -56,8 +52,6 @@ function App() {
     };
 
     loadProfile();
-
-    // Initialize WebSocket connection when token is available
     websocketService.connect(token);
 
     return () => {
@@ -75,17 +69,42 @@ function App() {
 
   const hasCompleteProfile = isProfileComplete(profile);
 
+  // Створюємо безпечний fallback-профіль для компонентів на випадок, якщо дані з бекенду ще вантажаться
+  const dummyProfile = {
+    aboutMe: "",
+    isOnline: false,
+    city: "",
+    age: 0,
+    gender: "",
+    latitude: 0,
+    longitude: 0,
+    preferredDistance: 50,
+    recommendByCityOnly: false,
+    id: "0",
+    name: "User",
+    lastSeenAt: undefined
+  };
+
+  // Передаємо пропси відповідно до того, що реально використовують твої файли
+  const connectionUserProps = profile 
+    ? { ...profile, id: String(profile.id), name: profile.name }
+    : dummyProfile;
+
+
   return (
     <Router>
-      {/* Передаємо стан профілю в Layout, щоб керувати навігацією */}
-      <Layout profileComplete={hasCompleteProfile}>
+      {/* Layout очікує лише два пропси: children та currentUserProfile */}
+      <Layout currentUserProfile={profile}>
         <Routes>
           <Route path="/login" element={<Auth />} />
           
-          {/* Сторінка профілю доступна завжди, передаємо туди fetchProfile для оновлення стану після збереження */}
-          <Route path="/profile" element={<Profile onProfileUpdate={fetchProfile} />} />
+          {/* Компонент Profile приймає ТІЛЬКИ onProfileUpdate згідно з твоїм кодом */}
+          <Route
+            path="/profile"
+            element={<Profile onProfileUpdate={fetchProfile} />}
+          />
 
-          {/* Захищені роути: якщо профіль не заповнено — редирект на /profile */}
+          {/* Передаємо candidateProps (об'єкт з іменами, лімітами тощо), без зайвого user */}
           <Route
             path="/recommendations"
             element={
@@ -96,16 +115,19 @@ function App() {
               )
             }
           />
+
+          {/* Залишаємо логіку передачі пропсу user для Connections сторінки */}
           <Route
             path="/connections"
             element={
               token && !hasCompleteProfile ? (
                 <Navigate to="/profile" state={{ forceFill: true }} replace />
               ) : (
-                <Connections />
+                <Connections user={connectionUserProps} />
               )
             }
           />
+
           <Route
             path="/chat"
             element={

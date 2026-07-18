@@ -6,10 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
-
 import com.matchme.backend.models.User;
 import com.matchme.backend.GeoUtils;
 import com.matchme.backend.models.UserBio;
@@ -62,12 +59,15 @@ public class RecommendationService {
         Long effectiveUserId = currentUserId != null ? currentUserId : userId;
 
         UserProfile myProfile = userProfileRepository.findById(effectiveUserId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "User profile isn't finished - recommendations aren't available."));
+                .orElse(null);
 
         UserBio myBio = userBioRepository.findById(effectiveUserId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Biographical data aren't finished - recommendations aren't available."));
+                .orElse(null);
+
+        if (myProfile == null || myBio == null || myProfile.getCity() == null || myProfile.getAge() == null
+                || myBio.getLookingFor() == null) {
+            return new ArrayList<>();
+        }
 
         List<Long> excludedIds = new ArrayList<>(connectionRepository.findExcludedUserIds(userId));
 

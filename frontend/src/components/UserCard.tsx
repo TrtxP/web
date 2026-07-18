@@ -1,5 +1,5 @@
 import React from 'react';
-import type { AggregatedProfile } from '../services/matchService';
+import type { AggregatedProfile } from '../types';
 
 interface UserCardProps {
   profile: AggregatedProfile;
@@ -13,9 +13,9 @@ export const UserCard: React.FC<UserCardProps> = ({ profile, onConnect, onDismis
       
       {/* Top Banner & Profile Picture Space */}
       <div className="relative h-44 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-6xl select-none">
-        {profile.profilePicture ? (
+        {profile.profilePictureUrl ? (
           <img 
-            src={profile.profilePicture} 
+            src={profile.profilePictureUrl} 
             alt={profile.name} 
             className="w-full h-full object-cover"
           />

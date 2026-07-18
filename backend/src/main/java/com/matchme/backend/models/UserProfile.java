@@ -1,5 +1,7 @@
 package com.matchme.backend.models;
 
+import java.time.LocalDateTime;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.*;
@@ -55,4 +57,6 @@ public class UserProfile {
     // Boolean (не примітив), щоб коректно розрізняти "поле не передане"
     // від "явно встановлено false" при PATCH — так само, як з likesLongWalks.
     private Boolean recommendByCityOnly = false;
+
+    private LocalDateTime lastSeenAt;
 }

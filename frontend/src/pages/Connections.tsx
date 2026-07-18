@@ -6,10 +6,13 @@ import {
 } from "../services/matchService";
 import { FullProfileModal } from "../components/FullProfileModal";
 import { useNavigate } from "react-router-dom"; // Для швидкого переходу в чат
-import type { ConnectionAggregatedProfile } from "../types";
+import type {
+  ConnectionAggregatedProfile,
+  ConnectionCardProps,
+} from "../types";
+import { getUserStatus } from "../utils/date";
 
-
-const Connections: React.FC = () => {
+const Connections: React.FC<ConnectionCardProps> = ({ user }) => {
   const [connections, setConnections] = useState<ConnectionAggregatedProfile[]>(
     [],
   );
@@ -21,6 +24,7 @@ const Connections: React.FC = () => {
   >([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const status = getUserStatus(user.isOnline, user.lastSeenAt);
 
   const loadAllData = async () => {
     try {
@@ -55,7 +59,7 @@ const Connections: React.FC = () => {
               connectionId: item.id,
             };
           } catch (err) {
-            console.error(`Error request handling ${item.id}: ${err}`,);
+            console.error(`Error request handling ${item.id}: ${err}`);
             return { connectionId: item.id };
           }
         },
@@ -217,7 +221,7 @@ const Connections: React.FC = () => {
                   </div>
                 )}
                 <span
-                  className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white ${user.isOnline ? "bg-green-500" : "bg-gray-400"}`}
+                  className={`status ${status.text === "Online" ? "status-success" : status.text === "Offline" ? "status-warning" : status.colorClass}`}
                 />
               </div>
 

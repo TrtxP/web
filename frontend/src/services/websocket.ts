@@ -1,4 +1,5 @@
 import { Client, type StompSubscription } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 
 type MessageCallback = (data: unknown) => void;
 
@@ -10,9 +11,21 @@ class WebSocketService {
   connect(token: string) {
     if (this.client && this.client.active) return;
 
+    const envApiUrl = import.meta.env.VITE_API_URL;
+
+    let wsUrl: string
+    if (envApiUrl) {
+      wsUrl = `${envApiUrl.replace(/\/$/, "")}/ws`
+    } else {
+      wsUrl = `http://localhost:8080/ws`;
+    }
+
+    console.log(`Connecting WebSocket to: ${wsUrl}`);
+
     // Connects matching your backend ChatWebSocketController rules
     this.client = new Client({
-      brokerURL: `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws/websocket`,
+      webSocketFactory: () => new SockJS(wsUrl),
+      // brokerURL: `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws/websocket`,
       connectHeaders: {
         Authorization: `Bearer ${token}`,
       },

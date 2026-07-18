@@ -1,10 +1,5 @@
 import React from "react";
-import { type AggregatedProfile } from "../services/matchService";
-
-interface FullProfileModalProps {
-  profile: AggregatedProfile;
-  onClose: () => void;
-}
+import { type FullProfileModalProps } from "../types";
 
 export const FullProfileModal: React.FC<FullProfileModalProps> = ({ profile, onClose }) => {
   return (

@@ -28,6 +28,7 @@ export interface MyPrivateUserDTO {
 export interface UserProfileDTO {
   aboutMe: string;
   isOnline: boolean;
+  lastSeenAt?: string;
   city: string;
   age: number;
   gender: string;
@@ -82,10 +83,6 @@ export interface FullUserInformation {
   bio: UserBioDTO;
 }
 
-export interface RecommendationCardProps {
-  user: FullUserInformation;
-}
-
 export interface CitySuggestion {
   display_name: string;
   lat: string;
@@ -94,16 +91,25 @@ export interface CitySuggestion {
 
 export interface LayoutProps {
   children: React.ReactNode;
-  profileComplete?: boolean;
+  currentUserProfile: UserProfileDTO | null;
 }
 
 export interface ProfileProps {
   onProfileUpdate?: () => void;
 }
 
+export interface ConnectionCardProps {
+  user: UserProfileDTO & { id: string; name: string };
+}
+
 export interface EditProfileModalProps {
   currentProfile: Partial<PrivateAggregatedProfile>;
   onSave: (profile: Partial<PrivateAggregatedProfile>) => void;
+  onClose: () => void;
+}
+
+export interface FullProfileModalProps {
+  profile: AggregatedProfile;
   onClose: () => void;
 }
 
@@ -119,3 +125,24 @@ export const isProfileComplete = (
     profile.lookingFor?.trim()
   );
 };
+
+export const isProfileEmpty = (
+  profile: UserProfileDTO | null | undefined,
+): boolean => {
+  if (!profile) return true;
+  // Якщо немає міста або віку — профіль вважається незаповненим
+  return !profile.city || !profile.age;
+};
+
+export const AVAILABLE_INTERESTS = [
+  "Music",
+  "Cinema",
+  "Books",
+  "Sports",
+  "Coding",
+  "Gaming",
+  "Cooking",
+  "Travel",
+  "Art",
+  "Photography",
+];

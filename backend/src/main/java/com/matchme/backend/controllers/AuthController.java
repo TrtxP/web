@@ -46,6 +46,9 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Невірний email або пароль");
         }
 
+        user.setIsOnline(true);
+        userRepository.save(user);
+
         String token = jwtService.generateToken(user.getId());
         return ResponseEntity.ok(new LoginResponseDTO(user.getId(), token));
     }

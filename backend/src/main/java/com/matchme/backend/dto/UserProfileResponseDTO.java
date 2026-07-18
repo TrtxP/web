@@ -1,5 +1,7 @@
 package com.matchme.backend.dto;
 
+import java.time.LocalDateTime;
+
 import lombok.Data;
 
 @Data
@@ -12,4 +14,5 @@ public class UserProfileResponseDTO {
     private Double longitude;
     private Integer preferredDistance;
     private Boolean recommendByCityOnly;
+    private LocalDateTime lastSeenAt;
 }

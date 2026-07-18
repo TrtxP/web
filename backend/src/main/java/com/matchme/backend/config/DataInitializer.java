@@ -31,14 +31,14 @@ public class DataInitializer {
 
     private static final List<String> CITIES = List.of(
             // Major cities and regional centers across Ukraine
-            "Kyiv", "Kharkiv", "Odesa", "Dnipro", "Donetsk", "Zaporizhzhia", "Lviv",
-            "Kryvyi Rih", "Mykolaiv", "Mariupol", "Sevastopol", "Simferopol", "Nikopol",
+            "Kyiv", "Kharkiv", "Odesa", "Dnipro", "Zaporizhzhia", "Lviv",
+            "Kryvyi Rih", "Mykolaiv", "Nikopol",
             "Poltava", "Chernihiv", "Cherkasy", "Zhytomyr", "Sumy", "Rivne", "Lutsk",
             "Ivano-Frankivsk", "Ternopil", "Uzhhorod", "Chernivtsi", "Kropyvnytskyi",
-            "Bila Tserkva", "Brovary", "Melitopol", "Kramatorsk", "Sloviansk", "Konotop",
-            "Berdyansk", "Pavlohrad", "Kamianets-Podilskyi", "Bucha", "Hostomel", "Fastiv",
+            "Bila Tserkva", "Brovary", "Kramatorsk", "Sloviansk", "Konotop",
+            "Pavlohrad", "Kamianets-Podilskyi", "Bucha", "Hostomel", "Fastiv",
             "Kovel", "Mukachevo", "Yuzhne", "Sviatohirsk", "Horishni Plavni", "Chervonohrad",
-            "Izmail", "Boryspil", "Uman", "Pryluky", "Bakhmut", "Khmelnitskyi", "Kolomyia",
+            "Izmail", "Boryspil", "Uman", "Pryluky", "Khmelnitskyi", "Kolomyia",
             "Korosten", "Shepetivka", "Nova Kakhovka", "Shostka", "Novomoskovsk");
 
     @Bean

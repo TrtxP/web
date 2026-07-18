@@ -1,142 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { matchService } from "../services/matchService";
-import type { CitySuggestion, PrivateAggregatedProfile, ProfileProps, EditProfileModalProps } from "../types";
-
-
-const AVAILABLE_INTERESTS = [
-  "Music",
-  "Cinema",
-  "Books",
-  "Sports",
-  "Coding",
-  "Gaming",
-  "Cooking",
-  "Travel",
-  "Art",
-  "Photography",
-];
-
-const EditProfileModal: React.FC<EditProfileModalProps> = ({
-  currentProfile,
-  onSave,
-  onClose,
-}) => {
-  const [selectedInterests, setSelectedInterests] = useState<string[]>(
-    Array.isArray(currentProfile.interests) ? currentProfile.interests : [],
-  );
-  const [likesLongWalks, setLikesLongWalks] = useState(
-    currentProfile.likesLongWalks || false,
-  );
-  const [lookingFor, setLookingFor] = useState(currentProfile.lookingFor || "");
-
-  const toggleInterest = (interest: string) => {
-    if (selectedInterests.includes(interest)) {
-      setSelectedInterests((prev) => prev.filter((item) => item !== interest));
-    } else {
-      if (selectedInterests.length < 8) {
-        setSelectedInterests((prev) => [...prev, interest]);
-      } else {
-        window.alert("You can select up to 8 interests!");
-      }
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({
-      ...currentProfile,
-      interests: selectedInterests,
-      likesLongWalks,
-      lookingFor,
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
-      >
-        <h2 className="mb-4 text-xl font-bold text-gray-900">Edit Profile</h2>
-
-        <div className="mb-4">
-          <label className="mb-2 block text-sm font-semibold text-gray-700">
-            Looking For
-          </label>
-          <select
-            value={lookingFor}
-            onChange={(e) => setLookingFor(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 p-2 text-sm outline-none"
-          >
-            <option value="">Not specified</option>
-            <option value="Friends">Friends</option>
-            <option value="Relationships">Relationships</option>
-          </select>
-        </div>
-
-        <div className="mb-4 flex items-center">
-          <input
-            type="checkbox"
-            id="walks"
-            checked={likesLongWalks}
-            onChange={(e) => setLikesLongWalks(e.target.checked)}
-            className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-          />
-          <label htmlFor="walks" className="text-sm font-semibold text-gray-700">
-            I love long walks 🚶‍♂️🚶‍♀️
-          </label>
-        </div>
-
-        <div className="mb-6">
-          <label className="mb-2 block text-sm font-semibold text-gray-700">
-            Interests ({selectedInterests.length}/8)
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {AVAILABLE_INTERESTS.map((interest) => {
-              const isSelected = selectedInterests.includes(interest);
-              return (
-                <button
-                  key={interest}
-                  type="button"
-                  onClick={() => toggleInterest(interest)}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    isSelected
-                      ? "border-blue-600 bg-blue-600 text-white"
-                      : "border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {interest}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
-          >
-            Save
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-};
+import {
+  type CitySuggestion,
+  type PrivateAggregatedProfile,
+  type ProfileProps,
+} from "../types";
+import { getUserStatus } from "../utils/date";
+import { EditProfileModal } from "../components/EditProfileModal";
 
 export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
   const location = useLocation();
   const showWarning = location.state?.forceFill === true;
-  
+
   const [profile, setProfile] = useState<PrivateAggregatedProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -153,6 +29,10 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
   const [citySearch, setCitySearch] = useState("");
   const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  const status = profile
+    ? getUserStatus(!!profile.isOnline, profile.lastSeenAt)
+    : null;
 
   useEffect(() => {
     const fetchMyProfile = async () => {
@@ -412,12 +292,15 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
           <div>
             <h4 className="font-bold text-sm">Please complete your profile!</h4>
             <p className="text-xs text-amber-700 mt-0.5">
-              Fill in your <strong>City</strong>, <strong>Gender</strong>, <strong>Age</strong>, and <strong>What you are looking for</strong> to get access to recommendations and other features.
+              Fill in your <strong>City</strong>, <strong>Gender</strong>,{" "}
+              <strong>Age</strong>, and{" "}
+              <strong>What you are looking for</strong> to get access to
+              recommendations and other features.
             </p>
           </div>
         </div>
       )}
-      
+
       {isEditing && isEditDetailsModalOpen && (
         <EditProfileModal
           currentProfile={editedData}
@@ -425,7 +308,7 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
           onClose={() => setIsEditDetailsModalOpen(false)}
         />
       )}
-      
+
       <form
         onSubmit={handleSave}
         className="grid grid-cols-1 md:grid-cols-3 gap-8"
@@ -471,10 +354,8 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
             </div>
 
             <span
-              className={`absolute bottom-1 right-1 w-5 h-5 rounded-full border-4 border-white ${
-                profile.isOnline ? "bg-green-500" : "bg-gray-400"
-              }`}
-              title={profile.isOnline ? "Online" : "Offline"}
+              className={`status ${status?.colorClass}`}
+              title={status?.text}
             />
           </div>
 
@@ -516,13 +397,13 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
           </div>
 
           <span
-            className={`text-xs font-bold px-3 py-1.5 rounded-full ${
+            className={`${
               profile.isOnline
-                ? "bg-green-100 text-green-700"
-                : "bg-gray-100 text-gray-600"
+                ? "inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 inset-ring inset-ring-green-600/20"
+                : "inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 inset-ring inset-ring-yellow-600/20"
             }`}
           >
-            {profile.isOnline ? "● Active Now" : "○ Offline"}
+            {profile.isOnline ? "Active Now" : "Offline"}
           </span>
 
           <hr className="w-full my-5 border-gray-100" />
@@ -775,22 +656,24 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
                       placeholder="Type city name..."
                     />
 
-                    {suggestions.length > 0 && citySearch.trim() !== "" && citySearch !== (profile.city || editedData.city) && (
-                      <ul className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg max-h-48 overflow-y-auto shadow-lg">
-                        {suggestions.map((s, index) => (
-                          <li
-                            key={index}
-                            onClick={() => {
-                              handleSelectCity(s);
-                              setSuggestions([]);
-                            }}
-                            className="p-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-none"
-                          >
-                            {s.display_name}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    {suggestions.length > 0 &&
+                      citySearch.trim() !== "" &&
+                      citySearch !== (profile.city || editedData.city) && (
+                        <ul className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg max-h-48 overflow-y-auto shadow-lg">
+                          {suggestions.map((s, index) => (
+                            <li
+                              key={index}
+                              onClick={() => {
+                                handleSelectCity(s);
+                                setSuggestions([]);
+                              }}
+                              className="p-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-none"
+                            >
+                              {s.display_name}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     {isSearching && (
                       <span className="absolute right-3 top-3 text-xs text-gray-400">
                         Searching...
