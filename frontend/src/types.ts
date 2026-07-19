@@ -55,6 +55,23 @@ export interface ChatMessageDTO {
   sentAt: string;
 }
 
+export interface UserSummary {
+  id: number;
+  name: string;
+  email: string;
+  profilePictureUrl?: string | null;
+}
+
+export interface ChatMessage {
+  id?: number;
+  chatId?: number;
+  senderId?: number;
+  sender?: UserSummary;
+  receiverId?: number;
+  content: string;
+  sentAt: string;
+}
+
 export interface TypingIndicatorDTO {
   chatId: number;
   userId: number;
@@ -122,6 +139,13 @@ export interface UserProfileStatusUpdate {
   userId: number;
   isOnline: boolean;
   lastSeenAt: string;
+}
+
+export interface ChatSummary {
+  id: number;
+  partnerId: number;
+  partnerName: string;
+  lastMessageAt: string;
 }
 
 export const isProfileComplete = (

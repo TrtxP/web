@@ -8,6 +8,7 @@ import type {
   PrivateAggregatedProfile,
   MyPrivateUserDTO,
   ConnectionAggregatedProfile,
+  ChatSummary,
 } from "../types";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
@@ -16,9 +17,9 @@ export const api = axios.create({
   baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
-    "ngrok-skip-browser-warning": "true"
+    "ngrok-skip-browser-warning": "true",
   },
-  withCredentials: true
+  withCredentials: true,
 });
 
 api.interceptors.request.use(
@@ -107,7 +108,9 @@ export const matchService = {
         }),
       );
 
-      return fullProfiles.filter((p): p is ConnectionAggregatedProfile => p !== null);
+      return fullProfiles.filter(
+        (p): p is ConnectionAggregatedProfile => p !== null,
+      );
     } catch (err) {
       console.error(`Failed to load full connections: ${err}`);
       throw err;
@@ -176,5 +179,9 @@ export const matchService = {
       console.error(`Failed to get or create chat: ${err}`);
       throw err;
     }
+  },
+  getUserChats: async (): Promise<ChatSummary[]> => {
+    const res = await api.get<ChatSummary[]>("/chats");
+    return res.data;
   },
 };

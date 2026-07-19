@@ -3,14 +3,16 @@ import { api } from "../services/matchService";
 import { websocketService } from "../services/websocket";
 import { matchService } from "../services/matchService";
 import type {
+  ChatMessage,
   ChatMessageDTO,
+  ChatSummary,
   TypingIndicatorDTO,
   UserProfileStatusUpdate,
 } from "../types"; // 🔴 ДОДАНО: тип UserProfileStatusUpdate
 import { useSearchParams } from "react-router-dom";
 
 export const Chat: React.FC = () => {
-  const [messages, setMessages] = useState<ChatMessageDTO[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [activeChatId, setActiveChatId] = useState<number | null>(null);
   const [partnerName, setPartnerName] = useState<string | null>(null);
@@ -19,9 +21,19 @@ export const Chat: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [chats, setChats] = useState<ChatSummary[]>([]);
   const [searchParams] = useSearchParams();
   const userIdParam = searchParams.get("userId");
   const targetUserId = userIdParam ? Number(userIdParam) : null;
+  const getSenderId = (message: ChatMessage): number | null => {
+    if (message.senderId !== undefined && message.senderId !== null) {
+      return message.senderId; // З WebSocket (ChatMessageDTO)
+    }
+    if (message.sender && message.sender.id) {
+      return message.sender.id; // З REST API (/messages)
+    }
+    return null;
+  };
 
   useEffect(() => {
     api
@@ -56,6 +68,19 @@ export const Chat: React.FC = () => {
 
     loadChat();
   }, [targetUserId]);
+
+  useEffect(() => {
+    const fetchUserChats = async () => {
+      try {
+        const data = await matchService.getUserChats();
+        setChats(data);
+      } catch (err) {
+        console.error(`Failed to load conversations: ${err}`);
+      }
+    };
+
+    fetchUserChats();
+  }, [activeChatId]);
 
   useEffect(() => {
     if (!targetUserId) return;
@@ -94,9 +119,14 @@ export const Chat: React.FC = () => {
 
     // Fetch initial chat history
     api
-      .get<ChatMessageDTO[]>(`/chats/${activeChatId}/messages?page=0&size=30`)
+      .get<ChatMessageDTO[] | { content: ChatMessageDTO[] }>(
+        `/chats/${activeChatId}/messages?page=0&size=30`,
+      )
       .then((res) => {
-        setMessages(res.data.reverse());
+        const messageArray = Array.isArray(res.data)
+          ? res.data
+          : (res.data.content ?? []);
+        setMessages([...messageArray].reverse());
         setTimeout(
           () => scrollRef.current?.scrollIntoView({ behavior: "smooth" }),
           50,
@@ -196,27 +226,33 @@ export const Chat: React.FC = () => {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-8rem)]">
       <div className="bg-white border rounded-2xl p-4 space-y-2 overflow-y-auto">
         <h3 className="font-bold text-lg mb-4">Open Conversations</h3>
-        {activeChatId && partnerName ? (
-          <button
-            onClick={() => setActiveChatId(activeChatId)}
-            className={`w-full text-left p-3 rounded-xl transition font-medium text-sm border flex items-center justify-between ${
-              activeChatId
-                ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-                : "hover:bg-gray-50"
-            }`}
-          >
-            <span>💬 {partnerName}</span>
-            <span
-              className={`w-2.5 h-2.5 rounded-full ${isPartnerOnline ? "bg-green-500" : "bg-gray-300"}`}
-            />
-          </button>
-        ) : null}
-        <button
-          onClick={() => setActiveChatId(1)}
-          className={`w-full text-left p-3 rounded-xl transition font-medium text-sm border ${activeChatId === 1 ? "bg-indigo-50 border-indigo-200 text-indigo-700" : "hover:bg-gray-50"}`}
-        >
-          💬 Demonstration Chat Thread
-        </button>
+        {chats.length > 0 ? (
+          chats.map((chat) => (
+            <button
+              key={chat.id}
+              onClick={() => {
+                setActiveChatId(chat.id);
+                setPartnerName(chat.partnerName);
+              }}
+              className={`w-full text-left p-3 rounded-xl transition font-medium text-sm border flex items-center justify-between ${
+                activeChatId === chat.id
+                  ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                  : "hover:bg-gray-50"
+              }`}
+            >
+              <span>💬 {chat.partnerName}</span>
+              {activeChatId === chat.id && (
+                <span
+                  className={`w-2.5 h-2.5 rounded-full ${isPartnerOnline ? "bg-green-500" : "bg-gray-300"}`}
+                />
+              )}
+            </button>
+          ))
+        ) : (
+          <p className="no-chats-placeholder text-gray-500">
+            No available chats yet
+          </p>
+        )}
       </div>
 
       <div className="md:col-span-2 bg-white border rounded-2xl flex flex-col justify-between overflow-hidden shadow-sm">
@@ -230,9 +266,9 @@ export const Chat: React.FC = () => {
                     : "Conversation Window"}
                 </span>
                 <span
-                  className={`text-xs font-semibold ${isPartnerOnline ? "text-green-600" : "text-gray-400"}`}
+                  className={`text-xs font-semibold ${isPartnerOnline || partnerTyping ? "text-green-600" : "text-gray-400"}`}
                 >
-                  {isPartnerOnline ? "● online" : "offline"}
+                  {isPartnerOnline || partnerTyping ? "● online" : "offline"}
                 </span>
               </div>
 
@@ -244,24 +280,33 @@ export const Chat: React.FC = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {messages.map((m) => (
-                <div
-                  key={m.sentAt}
-                  className={`flex flex-col ${m.senderId === currentUserId ? "items-end" : "items-start"}`}
-                >
+              {messages.map((m) => {
+                const messageSenderId = getSenderId(m);
+
+                const isMine =
+                  currentUserId !== null &&
+                  messageSenderId !== null &&
+                  String(messageSenderId) === String(currentUserId);
+
+                return (
                   <div
-                    className={`p-3 rounded-2xl max-w-md text-sm ${m.senderId === currentUserId ? "bg-indigo-600 text-white rounded-br-none" : "bg-gray-100 text-gray-800 rounded-bl-none"}`}
+                    key={m.id || `${m.sentAt}-${messageSenderId}`}
+                    className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
                   >
-                    {m.content}
+                    <div
+                      className={`p-3 rounded-2xl max-w-md text-sm ${isMine ? "bg-indigo-600 text-white rounded-br-none" : "bg-gray-100 text-gray-800 rounded-bl-none"}`}
+                    >
+                      {m.content}
+                    </div>
+                    <span className="text-[10px] text-gray-400 mt-1 font-mono">
+                      {new Date(m.sentAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-gray-400 mt-1 font-mono">
-                    {new Date(m.sentAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
               <div ref={scrollRef} />
             </div>
 
