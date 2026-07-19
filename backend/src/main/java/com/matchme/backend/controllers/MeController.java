@@ -73,6 +73,7 @@ public class MeController {
         dto.setName(user.getName());
         dto.setEmail(user.getEmail());
         dto.setProfilePictureUrl(user.getProfilePictureUrl());
+        dto.setIsOnline(user.getIsOnline());
         return ResponseEntity.ok(dto);
     }
 
@@ -80,6 +81,12 @@ public class MeController {
     public ResponseEntity<?> updateMeFull(@RequestBody User newUser) {
         Long userId = currentUserProvider.getCurrentUserId();
         User existingUser = userService.updateUserFull(userId, newUser);
+        MyPrivateProfileResponseDTO dto = new MyPrivateProfileResponseDTO();
+        dto.setId(existingUser.getId());
+        dto.setName(existingUser.getName());
+        dto.setEmail(existingUser.getEmail());
+        dto.setProfilePictureUrl(existingUser.getProfilePictureUrl());
+        dto.setIsOnline(existingUser.getIsOnline());
         return ResponseEntity.status(HttpStatus.OK).body(existingUser);
     }
 
@@ -87,6 +94,12 @@ public class MeController {
     public ResponseEntity<?> updateMePartial(@RequestBody User updatedFields) {
         Long userId = currentUserProvider.getCurrentUserId();
         User existingUser = userService.updateUserPartial(userId, updatedFields);
+        MyPrivateProfileResponseDTO dto = new MyPrivateProfileResponseDTO();
+        dto.setId(existingUser.getId());
+        dto.setName(existingUser.getName());
+        dto.setEmail(existingUser.getEmail());
+        dto.setProfilePictureUrl(existingUser.getProfilePictureUrl());
+        dto.setIsOnline(existingUser.getIsOnline());
         return ResponseEntity.status(HttpStatus.OK).body(existingUser);
     }
 
@@ -113,6 +126,7 @@ public class MeController {
         dto.setLongitude(profile.getLongitude());
         dto.setPreferredDistance(profile.getPreferredDistance());
         dto.setRecommendByCityOnly(profile.getRecommendByCityOnly());
+        dto.setLastSeenAt(profile.getLastSeenAt());
         return ResponseEntity.status(HttpStatus.OK).body(dto);
     }
 

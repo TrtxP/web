@@ -11,21 +11,13 @@ class WebSocketService {
   connect(token: string) {
     if (this.client && this.client.active) return;
 
-    const envApiUrl = import.meta.env.VITE_API_URL;
-
-    let wsUrl: string
-    if (envApiUrl) {
-      wsUrl = `${envApiUrl.replace(/\/$/, "")}/ws`
-    } else {
-      wsUrl = `http://localhost:8080/ws`;
-    }
+    const wsUrl = `http://localhost:8080/ws`;
 
     console.log(`Connecting WebSocket to: ${wsUrl}`);
 
     // Connects matching your backend ChatWebSocketController rules
     this.client = new Client({
       webSocketFactory: () => new SockJS(wsUrl),
-      // brokerURL: `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws/websocket`,
       connectHeaders: {
         Authorization: `Bearer ${token}`,
       },
@@ -40,7 +32,9 @@ class WebSocketService {
     this.client.onConnect = () => {
       console.log(`STOMP Connected cuccessfully`);
 
-      this.listeners.forEach((_callback, destination) => {
+      this.stompSubscriptions.clear();
+
+      this.listeners.forEach((_, destination) => {
         this.subscribeToStomp(destination);
       });
     };
@@ -69,6 +63,7 @@ class WebSocketService {
       if (this.listeners.get(destination)?.size === 0) {
         this.stompSubscriptions.get(destination)?.unsubscribe();
         this.stompSubscriptions.delete(destination);
+        this.listeners.delete(destination);
       }
     };
   }

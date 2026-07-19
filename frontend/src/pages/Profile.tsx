@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { matchService } from "../services/matchService";
+import { websocketService } from "../services/websocket";
 import {
   type CitySuggestion,
   type PrivateAggregatedProfile,
   type ProfileProps,
+  type UserProfileStatusUpdate,
 } from "../types";
 import { getUserStatus } from "../utils/date";
 import { EditProfileModal } from "../components/EditProfileModal";
@@ -89,6 +91,36 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
 
     return () => clearTimeout(delayDebounceFn);
   }, [citySearch]);
+
+  useEffect(() => {
+  // Перевіряємо, чи завантажився профіль і чи є ID користувача
+  if (!profile?.id) return;
+
+  // 1. Підписуємося на оновлення статусу
+  const subscription = websocketService.subscribe(
+    `/topic/users/${profile.id}/status`, // або загальний топік, залежно від архітектури
+    (message: unknown) => {
+      const data = message as UserProfileStatusUpdate;
+      // 2. Оновлюємо стейт профілю новими даними з WebSocket
+      setProfile((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          isOnline: data.isOnline,
+          lastSeenAt: data.lastSeenAt,
+        };
+      });
+    }
+  );
+
+  // 3. Функція очищення (Cleanup)
+  return () => {
+    if (subscription) {
+      // Скасовуємо підписку, коли користувач іде з цієї сторінки
+      subscription();
+    }
+  };
+}, [profile?.id]); // Ефект спрацює, щойно з'явиться id профілю
 
   const handleEditClick = () => {
     if (profile) {

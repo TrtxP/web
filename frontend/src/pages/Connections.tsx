@@ -9,10 +9,12 @@ import { useNavigate } from "react-router-dom"; // Для швидкого пе�
 import type {
   ConnectionAggregatedProfile,
   ConnectionCardProps,
+  UserProfileStatusUpdate,
 } from "../types";
 import { getUserStatus } from "../utils/date";
+import { websocketService } from "../services/websocket";
 
-const Connections: React.FC<ConnectionCardProps> = ({ user }) => {
+const Connections: React.FC<ConnectionCardProps> = () => {
   const [connections, setConnections] = useState<ConnectionAggregatedProfile[]>(
     [],
   );
@@ -24,7 +26,6 @@ const Connections: React.FC<ConnectionCardProps> = ({ user }) => {
   >([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const status = getUserStatus(user.isOnline, user.lastSeenAt);
 
   const loadAllData = async () => {
     try {
@@ -79,6 +80,58 @@ const Connections: React.FC<ConnectionCardProps> = ({ user }) => {
       await loadAllData();
     };
     loadData();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = websocketService.subscribe(
+      `/topic/users.status`,
+      (data: unknown) => {
+        const serverData = data as { userId: number; status: string };
+        console.log(
+          `Received status update in Connections: ${JSON.stringify(serverData)}`,
+        );
+
+        if (!serverData) return;
+
+        const updatedStatus: UserProfileStatusUpdate = {
+          userId: serverData.userId,
+          isOnline: serverData.status === 'ONLINE',
+          lastSeenAt: new Date().toISOString()
+        }
+
+        setConnections((prevConnections) =>
+          prevConnections.map((user) =>
+            user.id === updatedStatus.userId
+              ? {
+                  ...user,
+                  isOnline: updatedStatus.isOnline,
+                  lastSeenAt:
+                    !updatedStatus.isOnline
+                      ? updatedStatus.lastSeenAt
+                      : user.lastSeenAt,
+                }
+              : user,
+          ),
+        );
+
+        setPendingRequests((prevRequests) =>
+          prevRequests.map((user) =>
+            user.id === updatedStatus.userId
+              ? {
+                  ...user,
+                  isOnline: updatedStatus.isOnline,
+                  lastSeenAt:
+                    !updatedStatus.isOnline
+                      ? updatedStatus.lastSeenAt
+                      : user.lastSeenAt,
+                }
+              : user,
+          ),
+        );
+      },
+    );
+
+    return () => unsubscribe();
   }, []);
 
   const handleRespond = async (
@@ -141,54 +194,64 @@ const Connections: React.FC<ConnectionCardProps> = ({ user }) => {
             Pending Requests
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {pendingRequests.map((user) => (
-              <div
-                key={user.connectionId}
-                onClick={() => setSelectedProfile(user)}
-                className="bg-white rounded-2xl shadow-md border border-amber-100 p-5 flex flex-col items-center text-center transition-transform hover:-translate-y-1 cursor-pointer"
-              >
-                {/* Рендеринг Аватара користувача (копіюєш свій існуючий JSX для аватара) */}
-                <div className="relative w-28 h-28 mb-4">
-                  {user.profilePictureUrl ? (
-                    <img
-                      src={user.profilePictureUrl}
-                      alt={user.name}
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  ) : (
-                    <div className="w-full h-full rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-4xl font-bold">
-                      {user.name?.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </div>
+            {pendingRequests.map((user) => {
+              const status = getUserStatus(!!user.isOnline, user.lastSeenAt);
 
-                {/* Інформація про користувача (копіюєш свій існуючий JSX для інфо) */}
-                <div className="mb-4 w-full">
-                  <h3 className="text-2xl font-bold text-gray-900">
-                    {user.name}
-                  </h3>
-                  <p className="text-sm text-gray-400 mt-1">
-                    📍 {user.city || "Not specified"}
-                  </p>
-                </div>
+              return (
+                <div
+                  key={user.connectionId}
+                  onClick={() => setSelectedProfile(user)}
+                  className="bg-white rounded-2xl shadow-md border border-amber-100 p-5 flex flex-col items-center text-center transition-transform hover:-translate-y-1 cursor-pointer"
+                >
+                  {/* Рендеринг Аватара користувача (копіюєш свій існуючий JSX для аватара) */}
+                  <div className="relative w-28 h-28 mb-4">
+                    {user.profilePictureUrl ? (
+                      <img
+                        src={user.profilePictureUrl}
+                        alt={user.name}
+                        className="w-full h-full object-cover rounded-full"
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-4xl font-bold">
+                        {user.name?.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span
+                      className={`status ${status.isOnline ? "status-success" : "status-warning"}`}
+                      title={status.isOnline ? "Online" : "Offline"}
+                    ></span>
+                  </div>
 
-                {/* Унікальні Кнопки дій для підтвердження або відхилення */}
-                <div className="flex gap-3 w-full mt-auto">
-                  <button
-                    onClick={(e) => handleRespond(user.connectionId, false, e)}
-                    className="flex-1 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-500 border border-transparent hover:border-red-200 font-semibold py-2 rounded text-sm transition-colors"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    onClick={(e) => handleRespond(user.connectionId, true, e)}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded text-sm transition-colors"
-                  >
-                    Accept
-                  </button>
+                  {/* Інформація про користувача (копіюєш свій існуючий JSX для інфо) */}
+                  <div className="mb-4 w-full">
+                    <h3 className="text-2xl font-bold text-gray-900">
+                      {user.name}
+                    </h3>
+                    <p className="text-sm text-gray-400 mt-1">
+                      📍 {user.city || "Not specified"}
+                    </p>
+                  </div>
+
+                  {/* Унікальні Кнопки дій для підтвердження або відхилення */}
+                  <div className="flex gap-3 w-full mt-auto">
+                    <button
+                      onClick={(e) =>
+                        handleRespond(user.connectionId, false, e)
+                      }
+                      className="flex-1 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-500 border border-transparent hover:border-red-200 font-semibold py-2 rounded text-sm transition-colors"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      onClick={(e) => handleRespond(user.connectionId, true, e)}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded text-sm transition-colors"
+                    >
+                      Accept
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -201,61 +264,66 @@ const Connections: React.FC<ConnectionCardProps> = ({ user }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {connections.map((user) => (
-            <div
-              key={user.id}
-              onClick={() => setSelectedProfile(user)}
-              className="bg-white rounded-2xl shadow-md border border-gray-100 p-5 flex flex-col items-center text-center transition-transform hover:-translate-y-1 cursor-pointer"
-            >
-              {/* Аватар */}
-              <div className="relative w-28 h-28 mb-4">
-                {user.profilePictureUrl ? (
-                  <img
-                    src={user.profilePictureUrl}
-                    alt={user.name}
-                    className="w-full h-full object-cover rounded-full border-2 border-white shadow-sm"
+          {connections.map((user) => {
+            const status = getUserStatus(!!user.isOnline, user.lastSeenAt);
+
+            return (
+              <div
+                key={user.id}
+                onClick={() => setSelectedProfile(user)}
+                className="bg-white rounded-2xl shadow-md border border-gray-100 p-5 flex flex-col items-center text-center transition-transform hover:-translate-y-1 cursor-pointer"
+              >
+                {/* Аватар */}
+                <div className="relative w-28 h-28 mb-4">
+                  {user.profilePictureUrl ? (
+                    <img
+                      src={user.profilePictureUrl}
+                      alt={user.name}
+                      className="w-full h-full object-cover rounded-full border-2 border-white shadow-sm"
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-4xl font-bold shadow-inner">
+                      {user.name?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span
+                    className={`status ${status.isOnline ? "status-success" : "status-warning"}`}
+                    title={status.isOnline ? "Online" : "Offline"}
                   />
-                ) : (
-                  <div className="w-full h-full rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-4xl font-bold shadow-inner">
-                    {user.name?.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <span
-                  className={`status ${status.text === "Online" ? "status-success" : status.text === "Offline" ? "status-warning" : status.colorClass}`}
-                />
-              </div>
+                </div>
 
-              {/* Інфо */}
-              <div className="mb-4 w-full">
-                <h3 className="text-2xl font-bold text-gray-900">
-                  {user.name}
-                  {user.age ? `, ${user.age}` : ""}
-                </h3>
-                <p className="text-sm text-gray-400 mt-1">
-                  📍 {user.city || "Not specified"}
-                </p>
-                <p className="text-sm text-gray-500 italic mt-2 line-clamp-2">
-                  {user.aboutMe ? `"${user.aboutMe}"` : "No bio shared."}
-                </p>
-              </div>
+                {/* Інфо */}
+                <div className="mb-4 w-full">
+                  <h3 className="text-2xl font-bold text-gray-900">
+                    {user.name}
+                    {user.age ? `, ${user.age}` : ""}
+                  </h3>
+                  <p className="text-sm text-gray-400 mt-1">
+                    📍 {user.city || "Not specified"}
+                  </p>
+                  <p className="text-sm text-gray-500 italic mt-2 line-clamp-2">
+                    {user.aboutMe ? `"${user.aboutMe}"` : "No bio shared."}
+                  </p>
+                </div>
 
-              {/* Кнопки дій */}
-              <div className="flex gap-3 w-full mt-auto">
-                <button
-                  onClick={(e) => handleDisconnect(user.id, e)}
-                  className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-2 rounded text-sm transition-colors"
-                >
-                  Disconnect
-                </button>
-                <button
-                  onClick={(e) => handleStartChat(user.id, e)}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded text-sm transition-colors"
-                >
-                  Start Chat
-                </button>
+                {/* Кнопки дій */}
+                <div className="flex gap-3 w-full mt-auto">
+                  <button
+                    onClick={(e) => handleDisconnect(user.id, e)}
+                    className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-2 rounded text-sm transition-colors"
+                  >
+                    Disconnect
+                  </button>
+                  <button
+                    onClick={(e) => handleStartChat(user.id, e)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded text-sm transition-colors"
+                  >
+                    Start Chat
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

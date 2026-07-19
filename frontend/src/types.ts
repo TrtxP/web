@@ -113,6 +113,17 @@ export interface FullProfileModalProps {
   onClose: () => void;
 }
 
+export interface UserStatusUpdate {
+  userId: number;
+  isOnline: boolean;
+}
+
+export interface UserProfileStatusUpdate {
+  userId: number;
+  isOnline: boolean;
+  lastSeenAt: string;
+}
+
 export const isProfileComplete = (
   profile: PrivateAggregatedProfile | null,
 ): boolean => {

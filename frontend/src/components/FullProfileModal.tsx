@@ -1,18 +1,59 @@
-import React from "react";
-import { type FullProfileModalProps } from "../types";
+import React, { useEffect, useState } from "react";
+import {
+  type FullProfileModalProps,
+  type UserProfileStatusUpdate,
+} from "../types";
+import { websocketService } from "../services/websocket";
 
-export const FullProfileModal: React.FC<FullProfileModalProps> = ({ profile, onClose }) => {
+export const FullProfileModal: React.FC<FullProfileModalProps> = ({
+  profile: initialProfile,
+  onClose,
+}) => {
+  const [statusOverride, setStatusOverride] =
+    useState<UserProfileStatusUpdate | null>(null);
+
+  const profile = {
+    ...initialProfile,
+    isOnline:
+      statusOverride?.userId === initialProfile.id
+        ? statusOverride.isOnline
+        : initialProfile.isOnline,
+  };
+
+  useEffect(() => {
+    if (!initialProfile?.id) return;
+
+    const unsubscribe = websocketService.subscribe(
+      `/topic/users.status`,
+      (data: unknown) => {
+        const serverData = data as { userId: number; status: string };
+
+        if (serverData && serverData.userId === initialProfile.id) {
+          setStatusOverride({
+            userId: serverData.userId,
+            isOnline: serverData.status === "ONLINE",
+            lastSeenAt:
+              serverData.status === "OFFLINE"
+                ? new Date().toISOString()
+                : initialProfile.lastSeenAt || "",
+          });
+        }
+      },
+    );
+
+    return () => unsubscribe();
+  }, [initialProfile?.id]);
+
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex justify-center items-center p-4 overflow-y-auto"
-      onClick={onClose} 
+      onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl p-10 relative overflow-y-auto max-h-[95vh] animate-in slide-in-from-bottom-5 duration-300"
-        onClick={(e) => e.stopPropagation()} 
+        onClick={(e) => e.stopPropagation()}
       >
-
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-6 right-6 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-full w-10 h-10 flex items-center justify-center text-2xl transition-colors z-10"
           title="Close profile"
@@ -33,36 +74,38 @@ export const FullProfileModal: React.FC<FullProfileModalProps> = ({ profile, onC
                 👤
               </div>
             )}
-            <span className={`absolute bottom-1 right-1 w-6 h-6 rounded-full border-4 border-white shadow-sm ${
-              profile.isOnline ? "bg-green-500" : "bg-gray-400"
-            }`} />
           </div>
 
-          <h2 className="text-3xl font-black text-gray-900 mb-2">{profile.name}</h2>
-          
+          <h2 className="text-3xl font-black text-gray-900 mb-2">
+            {profile.name}
+          </h2>
+
           <div className="flex items-center gap-2 text-gray-500 text-base mb-5">
             <span>📍 {profile.city || "Not specified"}</span>
             {profile.age && <span>• {profile.age} years old</span>}
             {profile.gender && <span>• {profile.gender}</span>}
           </div>
 
-          <span className={`text-xs font-bold px-4 py-2 rounded-full flex items-center gap-1.5 ${
-            profile.isOnline ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${profile.isOnline ? "bg-green-500" : "bg-gray-400"}`} />
+          <span
+            className={`${
+              profile.isOnline
+                ? "inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 inset-ring inset-ring-green-600/20"
+                : "inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 inset-ring inset-ring-yellow-600/20"
+            }`}
+          >
             {profile.isOnline ? "Active Now" : "Offline"}
           </span>
-
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-
           <div className="bg-gray-50/50 border border-gray-100 rounded-2xl p-6 shadow-inner">
             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2.5">
               <span>📝</span> About Me
             </h3>
             <p className="text-gray-700 leading-relaxed text-base italic bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
-              {profile.aboutMe ? `"${profile.aboutMe}"` : "User hasn't shared a bio yet."}
+              {profile.aboutMe
+                ? `"${profile.aboutMe}"`
+                : "User hasn't shared a bio yet."}
             </p>
           </div>
 
@@ -88,28 +131,43 @@ export const FullProfileModal: React.FC<FullProfileModalProps> = ({ profile, onC
 
           <div className="md:col-span-2 bg-gray-50/50 border border-gray-100 rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-5 shadow-inner">
             <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-              <span className="text-xs text-gray-400 uppercase font-bold block mb-1">Looking For</span>
-              <span className="text-base font-semibold text-gray-800">{profile.lookingFor || "Relationships"}</span>
+              <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                Looking For
+              </span>
+              <span className="text-base font-semibold text-gray-800">
+                {profile.lookingFor || "Relationships"}
+              </span>
             </div>
             <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-              <span className="text-xs text-gray-400 uppercase font-bold block mb-1">Favorite Food</span>
-              <span className="text-base font-semibold text-gray-800">{profile.favoriteFood || "Not specified"}</span>
+              <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                Favorite Food
+              </span>
+              <span className="text-base font-semibold text-gray-800">
+                {profile.favoriteFood || "Not specified"}
+              </span>
             </div>
             <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-              <span className="text-xs text-gray-400 uppercase font-bold block mb-1">Favorite Music</span>
-              <span className="text-base font-semibold text-gray-800">{profile.favoriteMusic || "Not specified"}</span>
+              <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                Favorite Music
+              </span>
+              <span className="text-base font-semibold text-gray-800">
+                {profile.favoriteMusic || "Not specified"}
+              </span>
             </div>
             <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
               <div>
-                <span className="text-xs text-gray-400 uppercase font-bold block">Long Walks</span>
-                <span className="text-base font-semibold text-gray-800">Likes to walk?</span>
+                <span className="text-xs text-gray-400 uppercase font-bold block">
+                  Long Walks
+                </span>
+                <span className="text-base font-semibold text-gray-800">
+                  Likes to walk?
+                </span>
               </div>
               <span className="text-3xl">
                 {profile.likesLongWalks ? "❤️" : "🤷‍♂️"}
               </span>
             </div>
           </div>
-
         </div>
       </div>
     </div>

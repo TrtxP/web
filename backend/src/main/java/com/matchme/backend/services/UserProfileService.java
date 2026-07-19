@@ -38,6 +38,8 @@ public class UserProfileService {
         User savedUser = optionalUser.get();
         profile.setUser(savedUser);
 
+        profile.setLastSeenAt(java.time.LocalDateTime.now());
+
         PolicyFactory sanitizer = Sanitizers.FORMATTING;
 
         if (profile.getAboutMe() != null) {

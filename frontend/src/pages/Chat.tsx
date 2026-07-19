@@ -2,7 +2,11 @@ import React, { useEffect, useState, useRef } from "react";
 import { api } from "../services/matchService";
 import { websocketService } from "../services/websocket";
 import { matchService } from "../services/matchService";
-import type { ChatMessageDTO, TypingIndicatorDTO } from "../types";
+import type {
+  ChatMessageDTO,
+  TypingIndicatorDTO,
+  UserProfileStatusUpdate,
+} from "../types"; // 🔴 ДОДАНО: тип UserProfileStatusUpdate
 import { useSearchParams } from "react-router-dom";
 
 export const Chat: React.FC = () => {
@@ -11,6 +15,7 @@ export const Chat: React.FC = () => {
   const [activeChatId, setActiveChatId] = useState<number | null>(null);
   const [partnerName, setPartnerName] = useState<string | null>(null);
   const [partnerTyping, setPartnerTyping] = useState(false);
+  const [isPartnerOnline, setIsPartnerOnline] = useState<boolean>(false); // 🔴 ДОДАНО: стейт для онлайн-статусу партнеру
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
@@ -32,14 +37,55 @@ export const Chat: React.FC = () => {
       try {
         const chatId = await matchService.getOrCreateChat(targetUserId);
         setActiveChatId(chatId);
-        const partnerRes = await api.get<{ id: number; name: string }>(`/users/${targetUserId}`);
+
+        const partnerRes = await api.get<{
+          id: number;
+          name: string;
+          isOnline?: boolean;
+        }>(`/users/${targetUserId}`);
         setPartnerName(partnerRes.data.name);
+        if (typeof partnerRes.data.isOnline !== "undefined") {
+          setIsPartnerOnline(partnerRes.data.isOnline);
+        }
       } catch (err) {
-        console.error(`Failed to initialize chat for user ${targetUserId}: ${err}`);
+        console.error(
+          `Failed to initialize chat for user ${targetUserId}: ${err}`,
+        );
       }
     };
 
     loadChat();
+  }, [targetUserId]);
+
+  useEffect(() => {
+    if (!targetUserId) return;
+
+    const unsubscribe = websocketService.subscribe(
+      `/topic/users.status`,
+      (rawPayload) => {
+        const serverData = rawPayload as {
+          userId: number;
+          status: string;
+        };
+
+        console.log(
+          `Received status update in Chat: ${JSON.stringify(serverData)}`,
+        );
+
+        const update: UserProfileStatusUpdate = {
+          userId: serverData.userId,
+          isOnline: serverData.status === "ONLINE",
+          lastSeenAt: new Date().toISOString(),
+        };
+
+        // Якщо статус прийшов саме для того юзера, з яким ми зараз спілкуємось
+        if (update.userId === targetUserId) {
+          setIsPartnerOnline(update.isOnline);
+        }
+      },
+    );
+
+    return () => unsubscribe();
   }, [targetUserId]);
 
   // Load chat history and subscribe to real-time updates
@@ -153,9 +199,16 @@ export const Chat: React.FC = () => {
         {activeChatId && partnerName ? (
           <button
             onClick={() => setActiveChatId(activeChatId)}
-            className={`w-full text-left p-3 rounded-xl transition font-medium text-sm border ${activeChatId ? "bg-indigo-50 border-indigo-200 text-indigo-700" : "hover:bg-gray-50"}`}
+            className={`w-full text-left p-3 rounded-xl transition font-medium text-sm border flex items-center justify-between ${
+              activeChatId
+                ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                : "hover:bg-gray-50"
+            }`}
           >
-            💬 {partnerName}
+            <span>💬 {partnerName}</span>
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${isPartnerOnline ? "bg-green-500" : "bg-gray-300"}`}
+            />
           </button>
         ) : null}
         <button
@@ -170,9 +223,19 @@ export const Chat: React.FC = () => {
         {activeChatId ? (
           <>
             <div className="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
-              <span className="font-bold">
-                {partnerName ? `Chat with ${partnerName}` : "Conversation Window"}
-              </span>
+              <div className="flex flex-col">
+                <span className="font-bold">
+                  {partnerName
+                    ? `Chat with ${partnerName}`
+                    : "Conversation Window"}
+                </span>
+                <span
+                  className={`text-xs font-semibold ${isPartnerOnline ? "text-green-600" : "text-gray-400"}`}
+                >
+                  {isPartnerOnline ? "● online" : "offline"}
+                </span>
+              </div>
+
               {partnerTyping && (
                 <span className="text-xs font-semibold text-indigo-600 animate-pulse">
                   💬 Partner is typing...

@@ -1,14 +1,12 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { isProfileEmpty, type LayoutProps } from "../types";
+import { type LayoutProps } from "../types";
 
 export const Layout: React.FC<LayoutProps> = ({
   children,
-  currentUserProfile,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const hasEmptyProfile = isProfileEmpty(currentUserProfile);
   const token = localStorage.getItem("token");
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -22,7 +20,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const navItems = [
     { label: "Recommendations", path: "/recommendations" },
     { label: "Connections", path: "/connections" },
-    { label: "Chats", path: "/chat" }, 
+    { label: "Chats", path: "/chat" },
     { label: "My Profile", path: "/profile" },
   ];
 
@@ -30,27 +28,6 @@ export const Layout: React.FC<LayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col text-gray-900 font-sans">
-      
-      {/* Гарний банер-нагадування, який тепер не блокує, а просто інформує */}
-      {hasEmptyProfile && token && (
-        <div className="m-4 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between gap-3 text-amber-800 shadow-sm">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl animate-pulse">⚡</span>
-            <div>
-              <h4 className="font-bold text-sm">
-                Please complete your profile to unlock full recommendations!
-              </h4>
-              <p className="text-xs text-amber-600">You can still look around the app.</p>
-            </div>
-          </div>
-          <button 
-            className="text-white bg-amber-600 hover:bg-amber-700 font-medium rounded-xl text-sm px-4 py-2 transition-colors"
-            onClick={() => navigate('/profile')}>
-            Complete profile
-          </button>
-        </div>
-      )}
-
       {token && (
         <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm backdrop-blur-md bg-white/95">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -98,11 +75,26 @@ export const Layout: React.FC<LayoutProps> = ({
                   className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 focus:outline-none"
                   aria-label="Toggle navigation menu"
                 >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
                     {mobileOpen ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 6h16M4 12h16M4 18h16"
+                      />
                     )}
                   </svg>
                 </button>

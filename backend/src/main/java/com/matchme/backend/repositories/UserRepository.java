@@ -17,7 +17,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
         boolean existsByEmail(String email);
 
-        @Modifying
+        @Modifying(clearAutomatically = true)
         @Transactional
         @Query("UPDATE User u SET u.isOnline = :isOnline WHERE u.id = :userId")
         void updateOnlineStatus(@Param("userId") Long userId, @Param("isOnline") boolean isOnline);

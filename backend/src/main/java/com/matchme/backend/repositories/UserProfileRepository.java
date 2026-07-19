@@ -17,7 +17,7 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, Long> 
     @Query("SELECT p FROM UserProfile p WHERE p.user.id <> :currentUserId")
     List<UserProfile> findRecommendationsForUser(@Param("currentUserId") Long currentUserId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query("UPDATE UserProfile up SET up.lastSeenAt = :lastSeenAt WHERE up.user.id = :userId")
     void updateLastSeenTime(@Param("userId") Long userId, @Param("lastSeenAt") LocalDateTime lastSeenAt);

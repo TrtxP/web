@@ -6,6 +6,7 @@ import com.matchme.backend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,7 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -22,6 +24,7 @@ public class WebSocketEventListener {
 
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectEvent event) {
@@ -35,6 +38,9 @@ public class WebSocketEventListener {
                 // Оновлюємо статус: користувач в мережі
                 userRepository.updateOnlineStatus(userId, true);
                 userProfileRepository.updateLastSeenTime(userId, LocalDateTime.now());
+
+                Map<String, Object> statusPayLoad = Map.of("userId", userId, "status", "ONLINE");
+                messagingTemplate.convertAndSend("/topic/users.status", statusPayLoad, Map.of());
             }
         }
     }
@@ -51,6 +57,9 @@ public class WebSocketEventListener {
                 // Користувач вийшов з мережі, фіксуємо точний час lastSeenAt
                 userRepository.updateOnlineStatus(userId, false);
                 userProfileRepository.updateLastSeenTime(userId, LocalDateTime.now());
+
+                Map<String, Object> statusPayLoad = Map.of("userId", userId, "status", "OFFLINE");
+                messagingTemplate.convertAndSend("/topic/users.status", statusPayLoad, Map.of());
             }
         }
     }

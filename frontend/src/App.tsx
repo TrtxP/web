@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Layout } from "./components/Layout";
 import { Recommendations } from "./pages/Recommendations";
@@ -15,7 +20,6 @@ function App() {
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState<boolean>(() => !!token);
 
-  // Функція для оновлення стейту профілю (викликається після збереження в Profile.tsx)
   const fetchProfile = async () => {
     if (!token) {
       setLoading(false);
@@ -69,7 +73,6 @@ function App() {
 
   const hasCompleteProfile = isProfileComplete(profile);
 
-  // Створюємо безпечний fallback-профіль для компонентів на випадок, якщо дані з бекенду ще вантажаться
   const dummyProfile = {
     aboutMe: "",
     isOnline: false,
@@ -82,29 +85,24 @@ function App() {
     recommendByCityOnly: false,
     id: "0",
     name: "User",
-    lastSeenAt: undefined
+    lastSeenAt: undefined,
   };
 
-  // Передаємо пропси відповідно до того, що реально використовують твої файли
-  const connectionUserProps = profile 
+  const connectionUserProps = profile
     ? { ...profile, id: String(profile.id), name: profile.name }
     : dummyProfile;
 
-
   return (
     <Router>
-      {/* Layout очікує лише два пропси: children та currentUserProfile */}
       <Layout currentUserProfile={profile}>
         <Routes>
           <Route path="/login" element={<Auth />} />
-          
-          {/* Компонент Profile приймає ТІЛЬКИ onProfileUpdate згідно з твоїм кодом */}
+
           <Route
             path="/profile"
             element={<Profile onProfileUpdate={fetchProfile} />}
           />
 
-          {/* Передаємо candidateProps (об'єкт з іменами, лімітами тощо), без зайвого user */}
           <Route
             path="/recommendations"
             element={
@@ -116,7 +114,6 @@ function App() {
             }
           />
 
-          {/* Залишаємо логіку передачі пропсу user для Connections сторінки */}
           <Route
             path="/connections"
             element={
@@ -141,7 +138,13 @@ function App() {
 
           <Route
             path="*"
-            element={token ? <Navigate to="/recommendations" replace /> : <Navigate to="/login" replace />}
+            element={
+              token ? (
+                <Navigate to="/recommendations" replace />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
           />
         </Routes>
       </Layout>

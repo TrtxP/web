@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { matchService, resolveProfileData } from "../services/matchService";
 import { FullProfileModal } from "../components/FullProfileModal";
-import type { AggregatedProfile } from "../types";
+import type { AggregatedProfile, UserProfileStatusUpdate } from "../types";
 import { getUserStatus } from "../utils/date";
+import { websocketService } from "../services/websocket";
 
 // Рендеримо як компонент без вхідних пропсів (як сторінку)
 export const Recommendations: React.FC = () => {
@@ -26,6 +27,33 @@ export const Recommendations: React.FC = () => {
     };
     fetchRecommendations();
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = websocketService.subscribe(`/topic/users.status`, (data: unknown) => {
+      const serverData = data as {userId: number; status: string}
+      console.log(`Received status update in Recommendations: ${JSON.stringify(serverData)}`)
+
+      if (!serverData) return
+
+      const updatedStatus: UserProfileStatusUpdate = {
+        userId: serverData.userId,
+        isOnline: serverData.status === 'ONLINE',
+        lastSeenAt: new Date().toISOString()
+      }
+
+      setProfiles((prevProfiles) =>
+        prevProfiles.map((profile) =>
+          profile.id === updatedStatus.userId ? {
+            ...profile,
+            isOnline: updatedStatus.isOnline,
+            lastSeenAt: !updatedStatus.isOnline ? updatedStatus.lastSeenAt : profile.lastSeenAt
+          } : profile
+        ) 
+      )
+    })
+
+    return () => unsubscribe()
+  }, [])
 
   const handleConnect = async (id: number) => {
     await matchService.connectWithUser(id);

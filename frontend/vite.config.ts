@@ -8,11 +8,7 @@ export default defineConfig({
   server: {
     host: true,
 
-    allowedHosts: [
-      ".ngrok-free.app",
-      ".ngrok.io",
-      "overgrateful-mirtha-austerely.ngrok-free.dev",
-    ],
+    allowedHosts: [],
 
     proxy: {
       "/api": {
@@ -26,10 +22,6 @@ export default defineConfig({
       },
     },
 
-    hmr: {
-      // Якщо підключення йде через ngrok (встановіть змінну середовища NGROK=true),
-      // використовуємо порт 443, інакше — стандартний
-      clientPort: process.env.NGROK === "true" ? 443 : undefined,
-    },
+    hmr: true,
   },
 });
