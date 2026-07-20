@@ -95,6 +95,33 @@ spring.datasource.username=matchme_user
 spring.datasource.password=<your_password>
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+```
+
+With `spring.jpa.show-sql=true`, Spring JPA will log the SQL statements executed by Hibernate to the console. For better SQL readability, `spring.jpa.properties.hibernate.format_sql=true` will format the logged SQL.
+
+If you need parameter binding details, also add to `application.properties`:
+
+```
+logging.level.org.hibernate.SQL=DEBUG
+logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
+```
+
+For testing entity creation, deletion, and updates in the `matchme_db` database, adjust `spring.jpa.hibernate.ddl-auto` as needed:
+
+- `create`: create tables on startup (drops existing schema first if necessary)
+- `create-drop`: create tables on startup and drop them on shutdown
+- `update`: update the schema without deleting existing data
+
+Example test configuration:
+
+```
+spring.datasource.url=jdbc:postgresql://localhost:5432/matchme_db
+spring.datasource.username=matchme_user
+spring.datasource.password=<your_password>
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 ```
 
 3. Start the backend. Spring Boot will connect to PostgreSQL on startup. Check logs for successful connection.
