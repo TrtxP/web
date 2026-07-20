@@ -39,7 +39,7 @@ cd web
 ```
 
 2. Installation
-Install the project dependencies (including concurrently for running both servers simultaneously) in the root folder:
+Install the project dependencies (including concurrently for running both servers simultaneously) in the root folder and frontend folder:
 <br>
 ```
 npm install
