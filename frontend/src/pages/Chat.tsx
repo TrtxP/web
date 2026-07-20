@@ -28,6 +28,7 @@ export const Chat: React.FC = () => {
   }>({});
   const userIdParam = searchParams.get("userId");
   const targetUserId = userIdParam ? Number(userIdParam) : null;
+
   const getSenderId = (message: ChatMessage): number | null => {
     if (message.senderId !== undefined && message.senderId !== null) {
       return message.senderId; // З WebSocket (ChatMessageDTO)
@@ -38,6 +39,30 @@ export const Chat: React.FC = () => {
     return null;
   };
 
+  // 1. Функція для переміщення чату нагору списку
+  const updateChatPosition = useCallback((chatId: number, sentAt: string | Date) => {
+    const formattedSentAt = typeof sentAt === "string" ? sentAt : new Date(sentAt).toISOString();
+
+    setChats((prevChats) => {
+      const chatIndex = prevChats.findIndex((c) => c.id === chatId);
+
+      // Якщо чату ще немає в списку (новий чат), перезавантажуємо список через API
+      if (chatIndex === -1) {
+        matchService.getUserChats().then(setChats).catch(console.error);
+        return prevChats;
+      }
+
+      const updatedChat = {
+        ...prevChats[chatIndex],
+        lastMessageAt: formattedSentAt,
+      };
+
+      const filteredChats = prevChats.filter((c) => c.id !== chatId);
+      return [updatedChat, ...filteredChats];
+    });
+  }, []);
+
+  // 2. Оновлений handleIncomingMessage
   const handleIncomingMessage = useCallback(
     (msg: ChatMessageDTO) => {
       if (msg.chatId !== activeChatId && msg.senderId !== currentUserId) {
@@ -45,10 +70,13 @@ export const Chat: React.FC = () => {
           ...prev,
           [msg.chatId]: (prev[msg.chatId] || 0) + 1,
         }));
-        console.log("Incoming WebSocket msg:", msg)
+        console.log("Incoming WebSocket msg:", msg);
       }
+
+      // Переміщуємо чат нагору при отриманні фонового/вхідного повідомлення
+      updateChatPosition(msg.chatId, msg.sentAt as unknown as string);
     },
-    [activeChatId, currentUserId],
+    [activeChatId, currentUserId, updateChatPosition],
   );
 
   const handleSelectChat = (chatId: number, partnerName: string) => {
@@ -130,7 +158,6 @@ export const Chat: React.FC = () => {
           lastSeenAt: new Date().toISOString(),
         };
 
-        // Якщо статус прийшов саме для того юзера, з яким ми зараз спілкуємось
         if (update.userId === targetUserId) {
           setIsPartnerOnline(update.isOnline);
         }
@@ -144,7 +171,6 @@ export const Chat: React.FC = () => {
   useEffect(() => {
     if (!activeChatId) return;
 
-    // Fetch initial chat history
     api
       .get<ChatMessageDTO[] | { content: ChatMessageDTO[] }>(
         `/chats/${activeChatId}/messages?page=0&size=30`,
@@ -161,7 +187,7 @@ export const Chat: React.FC = () => {
       })
       .catch((err) => console.error(`Failed to load chat history: ${err}`));
 
-    // Subscribe to messages for the specific chat room via topic
+    // 3. Оновлена підписка на повідомлення у відкритому чаті
     const unsubMsg = websocketService.subscribe(
       `/topic/chat.${activeChatId}`,
       (rawPayload) => {
@@ -182,12 +208,13 @@ export const Chat: React.FC = () => {
             50,
           );
 
-          handleIncomingMessage(msg)
+          handleIncomingMessage(msg);
+          // Оновлюємо позицію активного чату у списку ліворуч
+          updateChatPosition(msg.chatId, msg.sentAt as unknown as string);
         }
       },
     );
 
-    // Subscribe to typing indicator for this specific chat
     const unsubTyping = websocketService.subscribe(
       `/topic/chat.${activeChatId}.typing`,
       (rawPayload) => {
@@ -203,27 +230,28 @@ export const Chat: React.FC = () => {
       unsubMsg();
       unsubTyping();
     };
-  }, [activeChatId, currentUserId, handleIncomingMessage]);
+  }, [activeChatId, currentUserId, handleIncomingMessage, updateChatPosition]);
 
   useEffect(() => {
-    if (!currentUserId) return
+    if (!currentUserId) return;
 
-    const unsubUserQueue = websocketService.subscribe("/user/queue/messages", (rawPayLoad) => {
-      const msg = rawPayLoad as ChatMessageDTO
-
-      handleIncomingMessage(msg)
-    })
+    const unsubUserQueue = websocketService.subscribe(
+      "/user/queue/messages",
+      (rawPayLoad) => {
+        const msg = rawPayLoad as ChatMessageDTO;
+        handleIncomingMessage(msg);
+      },
+    );
 
     return () => {
-      unsubUserQueue()
-    }
-  }, [currentUserId, activeChatId, handleIncomingMessage])
+      unsubUserQueue();
+    };
+  }, [currentUserId, activeChatId, handleIncomingMessage]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
     if (!activeChatId) return;
 
-    // Send typing indicator
     websocketService.send("/app/chat.typing", {
       chatId: activeChatId,
       typing: e.target.value.length > 0,
@@ -248,10 +276,8 @@ export const Chat: React.FC = () => {
     };
 
     try {
-      // Send message via WebSocket
       websocketService.send("/app/chat.send", payload);
       setInputValue("");
-      // Send typing stopped indicator
       websocketService.send("/app/chat.typing", {
         chatId: activeChatId,
         typing: false,
@@ -297,7 +323,9 @@ export const Chat: React.FC = () => {
 
               {activeChatId === chat.id && (
                 <span
-                  className={`w-2.5 h-2.5 rounded-full ${isPartnerOnline ? "bg-green-500" : "bg-gray-300"}`}
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    isPartnerOnline ? "bg-green-500" : "bg-gray-300"
+                  }`}
                 />
               )}
             </button>
@@ -320,7 +348,11 @@ export const Chat: React.FC = () => {
                     : "Conversation Window"}
                 </span>
                 <span
-                  className={`text-xs font-semibold ${isPartnerOnline || partnerTyping ? "text-green-600" : "text-gray-400"}`}
+                  className={`text-xs font-semibold ${
+                    isPartnerOnline || partnerTyping
+                      ? "text-green-600"
+                      : "text-gray-400"
+                  }`}
                 >
                   {isPartnerOnline || partnerTyping ? "● online" : "offline"}
                 </span>
@@ -345,10 +377,16 @@ export const Chat: React.FC = () => {
                 return (
                   <div
                     key={m.id || `${m.sentAt}-${messageSenderId}`}
-                    className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
+                    className={`flex flex-col ${
+                      isMine ? "items-end" : "items-start"
+                    }`}
                   >
                     <div
-                      className={`p-3 rounded-2xl max-w-md text-sm ${isMine ? "bg-indigo-600 text-white rounded-br-none" : "bg-gray-100 text-gray-800 rounded-bl-none"}`}
+                      className={`p-3 rounded-2xl max-w-md text-sm ${
+                        isMine
+                          ? "bg-indigo-600 text-white rounded-br-none"
+                          : "bg-gray-100 text-gray-800 rounded-bl-none"
+                      }`}
                     >
                       {m.content}
                     </div>

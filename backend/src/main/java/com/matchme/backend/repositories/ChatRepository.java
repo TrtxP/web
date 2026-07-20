@@ -16,6 +16,6 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
     Optional<Chat> findBetweenUsers(@Param("userIdA") Long userIdA, @Param("userIdB") Long userIdB);
 
     @Query("SELECT c FROM Chat c WHERE c.userOne.id = :userId OR c.userTwo.id = :userId " +
-            "ORDER BY c.lastMessageAt DESC")
+            "ORDER BY c.lastMessageAt DESC NULLS LAST")
     List<Chat> findAllForUserOrderByLastMessageDesc(@Param("userId") Long userId);
 }

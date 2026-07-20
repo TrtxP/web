@@ -93,34 +93,34 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
   }, [citySearch]);
 
   useEffect(() => {
-  // Перевіряємо, чи завантажився профіль і чи є ID користувача
-  if (!profile?.id) return;
+    // Перевіряємо, чи завантажився профіль і чи є ID користувача
+    if (!profile?.id) return;
 
-  // 1. Підписуємося на оновлення статусу
-  const subscription = websocketService.subscribe(
-    `/topic/users/${profile.id}/status`, // або загальний топік, залежно від архітектури
-    (message: unknown) => {
-      const data = message as UserProfileStatusUpdate;
-      // 2. Оновлюємо стейт профілю новими даними з WebSocket
-      setProfile((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          isOnline: data.isOnline,
-          lastSeenAt: data.lastSeenAt,
-        };
-      });
-    }
-  );
+    // 1. Підписуємося на оновлення статусу
+    const subscription = websocketService.subscribe(
+      `/topic/users/${profile.id}/status`, // або загальний топік, залежно від архітектури
+      (message: unknown) => {
+        const data = message as UserProfileStatusUpdate;
+        // 2. Оновлюємо стейт профілю новими даними з WebSocket
+        setProfile((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            isOnline: data.isOnline,
+            lastSeenAt: data.lastSeenAt,
+          };
+        });
+      },
+    );
 
-  // 3. Функція очищення (Cleanup)
-  return () => {
-    if (subscription) {
-      // Скасовуємо підписку, коли користувач іде з цієї сторінки
-      subscription();
-    }
-  };
-}, [profile?.id]); // Ефект спрацює, щойно з'явиться id профілю
+    // 3. Функція очищення (Cleanup)
+    return () => {
+      if (subscription) {
+        // Скасовуємо підписку, коли користувач іде з цієї сторінки
+        subscription();
+      }
+    };
+  }, [profile?.id]); // Ефект спрацює, щойно з'явиться id профілю
 
   const handleEditClick = () => {
     if (profile) {
@@ -747,22 +747,33 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
                 </div>
 
                 <div className="p-3 bg-gray-50 rounded-xl">
-                  <span className="text-xs text-gray-400 uppercase font-bold block mb-1">
-                    Preferred Distance (km)
-                  </span>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-gray-400 uppercase font-bold">
+                      Preferred Distance
+                    </span>
+                    <span className="text-sm font-bold text-blue-600">
+                      {editedData.preferredDistance || 50} km
+                    </span>
+                  </div>
                   <input
-                    type="number"
+                    type="range"
                     name="preferredDistance"
-                    value={editedData.preferredDistance || ""}
+                    min="10"
+                    max="900"
+                    step="5"
+                    value={editedData.preferredDistance || 50}
                     onChange={handleInputChange}
                     disabled={!!editedData.recommendByCityOnly}
-                    className={`w-full p-2 border border-gray-200 rounded-lg text-sm outline-none ${
+                    className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-blue-600 ${
                       editedData.recommendByCityOnly
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        : "bg-white"
+                        ? "bg-gray-200 cursor-not-allowed opacity-50"
+                        : "bg-gray-200 hover:bg-gray-300"
                     }`}
-                    placeholder="e.g. 50"
                   />
+                  <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+                    <span>10 km</span>
+                    <span>900 km</span>
+                  </div>
                   {editedData.recommendByCityOnly && (
                     <p className="text-[10px] text-gray-400 mt-1">
                       Ignored while "Show only my city" is enabled

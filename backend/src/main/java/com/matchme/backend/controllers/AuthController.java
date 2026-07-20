@@ -1,5 +1,8 @@
 package com.matchme.backend.controllers;
 
+import java.time.LocalDateTime;
+import java.util.Locale;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,6 +21,7 @@ import com.matchme.backend.repositories.UserRepository;
 import com.matchme.backend.security.JwtService;
 
 import jakarta.validation.Valid;
+import net.datafaker.Faker;
 
 @RestController
 @RequestMapping("/auth")
@@ -59,6 +63,8 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is already existed with this email.");
         }
 
+        Faker faker = new Faker(Locale.ENGLISH);
+
         User newUser = new User();
         newUser.setEmail(request.getEmail());
         newUser.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -69,6 +75,10 @@ public class AuthController {
         emptyProfile.setUser(newUser);
         emptyProfile.setCity("");
         emptyProfile.setGender("");
+        emptyProfile.setLatitude(faker.number().randomDouble(4, 45, 51));
+        emptyProfile.setLongitude(faker.number().randomDouble(4, 24, 39));
+        emptyProfile.setPreferredDistance(faker.number().numberBetween(30, 150));
+        emptyProfile.setLastSeenAt(LocalDateTime.now());
         newUser.setUserProfile(emptyProfile);
 
         com.matchme.backend.models.UserBio emptyBio = new com.matchme.backend.models.UserBio();
