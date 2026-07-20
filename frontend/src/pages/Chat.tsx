@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { api } from "../services/matchService";
 import { websocketService } from "../services/websocket";
 import { matchService } from "../services/matchService";
@@ -8,7 +8,7 @@ import type {
   ChatSummary,
   TypingIndicatorDTO,
   UserProfileStatusUpdate,
-} from "../types"; // 🔴 ДОДАНО: тип UserProfileStatusUpdate
+} from "../types";
 import { useSearchParams } from "react-router-dom";
 
 export const Chat: React.FC = () => {
@@ -17,12 +17,15 @@ export const Chat: React.FC = () => {
   const [activeChatId, setActiveChatId] = useState<number | null>(null);
   const [partnerName, setPartnerName] = useState<string | null>(null);
   const [partnerTyping, setPartnerTyping] = useState(false);
-  const [isPartnerOnline, setIsPartnerOnline] = useState<boolean>(false); // 🔴 ДОДАНО: стейт для онлайн-статусу партнеру
+  const [isPartnerOnline, setIsPartnerOnline] = useState<boolean>(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [chats, setChats] = useState<ChatSummary[]>([]);
   const [searchParams] = useSearchParams();
+  const [unreadMessages, setUnreadMessages] = useState<{
+    [chatId: number]: number;
+  }>({});
   const userIdParam = searchParams.get("userId");
   const targetUserId = userIdParam ? Number(userIdParam) : null;
   const getSenderId = (message: ChatMessage): number | null => {
@@ -33,6 +36,30 @@ export const Chat: React.FC = () => {
       return message.sender.id; // З REST API (/messages)
     }
     return null;
+  };
+
+  const handleIncomingMessage = useCallback(
+    (msg: ChatMessageDTO) => {
+      if (msg.chatId !== activeChatId && msg.senderId !== currentUserId) {
+        setUnreadMessages((prev) => ({
+          ...prev,
+          [msg.chatId]: (prev[msg.chatId] || 0) + 1,
+        }));
+        console.log("Incoming WebSocket msg:", msg)
+      }
+    },
+    [activeChatId, currentUserId],
+  );
+
+  const handleSelectChat = (chatId: number, partnerName: string) => {
+    setActiveChatId(chatId);
+    setPartnerName(partnerName);
+
+    // Скидаємо непрочитані для обраного чату
+    setUnreadMessages((prev) => ({
+      ...prev,
+      [chatId]: 0,
+    }));
   };
 
   useEffect(() => {
@@ -154,6 +181,8 @@ export const Chat: React.FC = () => {
             () => scrollRef.current?.scrollIntoView({ behavior: "smooth" }),
             50,
           );
+
+          handleIncomingMessage(msg)
         }
       },
     );
@@ -174,7 +203,21 @@ export const Chat: React.FC = () => {
       unsubMsg();
       unsubTyping();
     };
-  }, [activeChatId, currentUserId]);
+  }, [activeChatId, currentUserId, handleIncomingMessage]);
+
+  useEffect(() => {
+    if (!currentUserId) return
+
+    const unsubUserQueue = websocketService.subscribe("/user/queue/messages", (rawPayLoad) => {
+      const msg = rawPayLoad as ChatMessageDTO
+
+      handleIncomingMessage(msg)
+    })
+
+    return () => {
+      unsubUserQueue()
+    }
+  }, [currentUserId, activeChatId, handleIncomingMessage])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
@@ -233,6 +276,7 @@ export const Chat: React.FC = () => {
               onClick={() => {
                 setActiveChatId(chat.id);
                 setPartnerName(chat.partnerName);
+                handleSelectChat(chat.id, chat.partnerName);
               }}
               className={`w-full text-left p-3 rounded-xl transition font-medium text-sm border flex items-center justify-between ${
                 activeChatId === chat.id
@@ -240,7 +284,17 @@ export const Chat: React.FC = () => {
                   : "hover:bg-gray-50"
               }`}
             >
-              <span>💬 {chat.partnerName}</span>
+              <div className="flex items-center gap-2">
+                <span>💬 {chat.partnerName}</span>
+
+                {(unreadMessages[chat.id] > 0 ||
+                  (chat.unreadCount && chat.unreadCount > 0)) && (
+                  <span className="flex items-center justify-center bg-red-500 text-white text-[10px] font-bold h-5 min-w-[20px] px-1.5 rounded-full animate-pulse">
+                    {unreadMessages[chat.id] || chat.unreadCount}
+                  </span>
+                )}
+              </div>
+
               {activeChatId === chat.id && (
                 <span
                   className={`w-2.5 h-2.5 rounded-full ${isPartnerOnline ? "bg-green-500" : "bg-gray-300"}`}
@@ -300,6 +354,8 @@ export const Chat: React.FC = () => {
                     </div>
                     <span className="text-[10px] text-gray-400 mt-1 font-mono">
                       {new Date(m.sentAt).toLocaleTimeString([], {
+                        day: "numeric",
+                        month: "short",
                         hour: "2-digit",
                         minute: "2-digit",
                       })}

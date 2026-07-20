@@ -146,6 +146,7 @@ export interface ChatSummary {
   partnerId: number;
   partnerName: string;
   lastMessageAt: string;
+  unreadCount?: number;
 }
 
 export const isProfileComplete = (
