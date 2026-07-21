@@ -83,10 +83,15 @@ public class RecommendationService {
         String targetGender = null;
         if (myBio.getLookingFor() != null) {
             String lookingFor = myBio.getLookingFor().trim().toLowerCase();
+            String userGender = myProfile.getGender().trim().toLowerCase();
 
-            if (lookingFor.equals("relationships") || lookingFor.equals("relationship")
-                    || lookingFor.contains("relation")) {
+            if ((lookingFor.equals("relationships") || lookingFor.equals("relationship")
+                    || lookingFor.contains("relation")) && (userGender.equals("male"))) {
                 targetGender = "female";
+
+            } else if ((lookingFor.equals("relationships") || lookingFor.equals("relationship")
+                    || lookingFor.contains("relation")) && (userGender.equals("female"))) {
+                targetGender = "male";
 
             } else if (lookingFor.equals("friends") || lookingFor.equals("friend")) {
                 targetGender = null;
