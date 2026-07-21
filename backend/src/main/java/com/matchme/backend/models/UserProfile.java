@@ -32,7 +32,7 @@ public class UserProfile {
     @Pattern(regexp = "^[a-zA-Z\\s',.-:]+$", message = "Ivalid user information")
     private String aboutMe;
 
-    @Size(max = 100)
+    @Size(max = 200)
     // Allow letters from any language (including Cyrillic), digits, spaces and
     // common punctuation used in
     // location names (apostrophe, hyphen, comma, period, parentheses).
@@ -57,6 +57,9 @@ public class UserProfile {
     // Boolean (не примітив), щоб коректно розрізняти "поле не передане"
     // від "явно встановлено false" при PATCH — так само, як з likesLongWalks.
     private Boolean recommendByCityOnly = false;
+
+    @Column(name = "is_online")
+    private Boolean isOnline = false;
 
     private LocalDateTime lastSeenAt;
 }

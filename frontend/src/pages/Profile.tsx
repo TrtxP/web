@@ -6,7 +6,6 @@ import {
   type CitySuggestion,
   type PrivateAggregatedProfile,
   type ProfileProps,
-  type UserProfileStatusUpdate,
 } from "../types";
 import { getUserStatus } from "../utils/date";
 import { EditProfileModal } from "../components/EditProfileModal";
@@ -98,18 +97,21 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
 
     // 1. Підписуємося на оновлення статусу
     const subscription = websocketService.subscribe(
-      `/topic/users/${profile.id}/status`, // або загальний топік, залежно від архітектури
+      `/topic/users.status`, // або загальний топік, залежно від архітектури
       (message: unknown) => {
-        const data = message as UserProfileStatusUpdate;
+        const serverData = message as { userId: number; status: string };
+
         // 2. Оновлюємо стейт профілю новими даними з WebSocket
-        setProfile((prev) => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            isOnline: data.isOnline,
-            lastSeenAt: data.lastSeenAt,
-          };
-        });
+        if (serverData && serverData.userId === profile.id) {
+          setProfile((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              isOnline: serverData.status === 'ONLINE',
+              lastSeenAt: serverData.status === 'OFFLINE' ? new Date().toISOString() : prev.lastSeenAt
+            };
+          });
+        }
       },
     );
 

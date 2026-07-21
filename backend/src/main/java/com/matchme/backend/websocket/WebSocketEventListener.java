@@ -1,66 +1,52 @@
 package com.matchme.backend.websocket;
 
-import com.matchme.backend.repositories.UserProfileRepository;
-import com.matchme.backend.repositories.UserRepository;
+import com.matchme.backend.dto.UserStatusUpdateDTO;
+import com.matchme.backend.services.UserService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.security.Principal;
-import java.time.LocalDateTime;
-import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class WebSocketEventListener {
-
-    private final UserRepository userRepository;
-    private final UserProfileRepository userProfileRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final UserService userService;
 
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectEvent event) {
-        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
-        Principal principal = accessor.getUser();
+        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
 
-        if (principal != null) {
-            Long userId = getUserIdFromPrincipal(principal);
-            if (userId != null) {
-                log.info("User with ID {} connected to WebSocket", userId);
-                // Оновлюємо статус: користувач в мережі
-                userRepository.updateOnlineStatus(userId, true);
-                userProfileRepository.updateLastSeenTime(userId, LocalDateTime.now());
+        Long userId = getUserIdFromAccessor(headerAccessor);
 
-                Map<String, Object> statusPayLoad = Map.of("userId", userId, "status", "ONLINE");
-                messagingTemplate.convertAndSend("/topic/users.status", statusPayLoad, Map.of());
-            }
+        if (userId != null) {
+            log.info("User with ID {} connected to WebSocket", userId);
+
+            userService.updateUserStatus(userId, true);
+
+            messagingTemplate.convertAndSend("/topic/users.status", new UserStatusUpdateDTO(userId, "ONLINE"));
         }
     }
 
     @EventListener
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
-        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
-        Principal principal = accessor.getUser();
+        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
 
-        if (principal != null) {
-            Long userId = getUserIdFromPrincipal(principal);
-            if (userId != null) {
-                log.info("User with ID {} disconnected from WebSocket", userId);
-                // Користувач вийшов з мережі, фіксуємо точний час lastSeenAt
-                userRepository.updateOnlineStatus(userId, false);
-                userProfileRepository.updateLastSeenTime(userId, LocalDateTime.now());
+        Long userId = getUserIdFromAccessor(headerAccessor);
+        if (userId != null) {
+            log.info("User with ID {} disconnected from WebSocket", userId);
 
-                Map<String, Object> statusPayLoad = Map.of("userId", userId, "status", "OFFLINE");
-                messagingTemplate.convertAndSend("/topic/users.status", statusPayLoad, Map.of());
-            }
+            userService.updateUserStatus(userId, false);
+
+            messagingTemplate.convertAndSend("/topic/users.status", new UserStatusUpdateDTO(userId, "OFFLINE"));
         }
     }
 
@@ -69,8 +55,10 @@ public class WebSocketEventListener {
      * Налаштуй його залежно від того, як у тебе влаштована авторизація (наприклад,
      * CustomUserDetails).
      */
-    private Long getUserIdFromPrincipal(Principal principal) {
-        if (principal instanceof UsernamePasswordAuthenticationToken) {
+    private Long getUserIdFromAccessor(StompHeaderAccessor accessor) {
+        Principal principal = accessor.getUser();
+
+        if (principal != null) {
             try {
                 return Long.parseLong(principal.getName());
             } catch (NumberFormatException e) {
