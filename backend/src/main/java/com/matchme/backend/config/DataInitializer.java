@@ -6,6 +6,7 @@ import com.matchme.backend.models.UserProfile;
 import com.matchme.backend.repositories.UserBioRepository;
 import com.matchme.backend.repositories.UserProfileRepository;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -39,7 +40,7 @@ public class DataInitializer {
             "Pavlohrad", "Kamianets-Podilskyi", "Bucha", "Hostomel", "Fastiv",
             "Kovel", "Mukachevo", "Yuzhne", "Sviatohirsk", "Horishni Plavni", "Chervonohrad",
             "Izmail", "Boryspil", "Uman", "Pryluky", "Khmelnitskyi", "Kolomyia",
-            "Korosten", "Shepetivka", "Nova Kakhovka", "Shostka", "Novomoskovsk");
+            "Korosten", "Shepetivka", "Shostka", "Novomoskovsk");
 
     @Bean
     public CommandLineRunner initData(UserRepository userRepository,
@@ -88,6 +89,7 @@ public class DataInitializer {
                     userProfile.setLatitude(faker.number().randomDouble(4, 45, 51));
                     userProfile.setLongitude(faker.number().randomDouble(4, 24, 39));
                     userProfile.setPreferredDistance(faker.number().numberBetween(30, 150));
+                    userProfile.setLastSeenAt(LocalDateTime.now());
 
                     userProfileRepository.save(userProfile);
 

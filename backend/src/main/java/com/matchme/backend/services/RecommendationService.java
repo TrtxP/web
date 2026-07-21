@@ -58,6 +58,15 @@ public class RecommendationService {
 
         Long effectiveUserId = currentUserId != null ? currentUserId : userId;
 
+        User currentUser = userRepository.findById(effectiveUserId).orElse(null);
+        if (currentUser == null) {
+            return new ArrayList<>();
+        }
+
+        if (!isProfileComplete(currentUser)) {
+            return new ArrayList<>();
+        }
+
         UserProfile myProfile = userProfileRepository.findById(effectiveUserId)
                 .orElse(null);
 
@@ -101,8 +110,13 @@ public class RecommendationService {
 
         return candidates.stream()
                 .map(candidate -> {
+                    User candidateUser = userRepository.findById(candidate.getId()).orElse(null);
                     UserProfile candidateProfile = userProfileRepository.findById(candidate.getId()).orElse(null);
                     UserBio candidateBio = userBioRepository.findById(candidate.getId()).orElse(null);
+
+                    if (candidateUser == null || !isProfileComplete(candidateUser)) {
+                        return null;
+                    }
 
                     if (candidateProfile == null || candidateBio == null) {
                         return null;

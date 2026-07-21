@@ -26,8 +26,79 @@ export const Chat: React.FC = () => {
   const [unreadMessages, setUnreadMessages] = useState<{
     [chatId: number]: number;
   }>({});
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const userIdParam = searchParams.get("userId");
   const targetUserId = userIdParam ? Number(userIdParam) : null;
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const fetchMessages = useCallback(
+    async (pageNum: number, isInitial = false) => {
+      if (!activeChatId) return;
+
+      if (!isInitial && (isLoadingMore || !hasMore)) return;
+
+      if (!isInitial) setIsLoadingMore(true);
+
+      try {
+        const res = await api.get<
+          { content: ChatMessage[]; last: boolean } | ChatMessage[]
+        >(`/chats/${activeChatId}/messages?page=${pageNum}&size=30`);
+
+        let newMessages: ChatMessage[] = [];
+        let isLastPage = false;
+
+        if (Array.isArray(res.data)) {
+          newMessages = res.data;
+        } else {
+          newMessages = res.data.content ?? [];
+          isLastPage = res.data.last ?? false;
+        }
+
+        const reversed = [...newMessages].reverse();
+
+        if (isInitial) {
+          setMessages(reversed);
+          setPage(0);
+          setHasMore(!isLastPage);
+
+          requestAnimationFrame(() => {
+            scrollRef.current?.scrollIntoView({ behavior: "auto" });
+          });
+        } else {
+          const container = scrollContainerRef.current;
+          const previousScrollHeight = container ? container.scrollHeight : 0;
+
+          setMessages((prev) => [...reversed, ...prev]);
+          setPage(pageNum);
+          setHasMore(!isLastPage);
+
+          requestAnimationFrame(() => {
+            if (container) {
+              container.scrollTop =
+                container.scrollHeight - previousScrollHeight;
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load messages:", err);
+      } finally {
+        setIsLoadingMore(false);
+      }
+    },
+    [activeChatId, hasMore, isLoadingMore],
+  );
+
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    if (container.scrollTop < 50 && hasMore && !isLoadingMore) {
+      fetchMessages(page + 1, false);
+    }
+  };
+
   const getSenderId = (message: ChatMessage): number | null => {
     if (message.senderId !== undefined && message.senderId !== null) {
       return message.senderId; // З WebSocket (ChatMessageDTO)
@@ -38,17 +109,44 @@ export const Chat: React.FC = () => {
     return null;
   };
 
+  const updateChatPosition = useCallback(
+    (chatId: number, sentAt: string | Date) => {
+      const formattedSentAt =
+        typeof sentAt === "string" ? sentAt : new Date(sentAt).toISOString();
+
+      setChats((prevChats) => {
+        const chatIndex = prevChats.findIndex((c) => c.id === chatId);
+
+        // Якщо чату ще немає в списку (новий чат), перезавантажуємо список через API
+        if (chatIndex === -1) {
+          matchService.getUserChats().then(setChats).catch(console.error);
+          return prevChats;
+        }
+
+        const updatedChat = {
+          ...prevChats[chatIndex],
+          lastMessageAt: formattedSentAt,
+        };
+
+        const filteredChats = prevChats.filter((c) => c.id !== chatId);
+        return [updatedChat, ...filteredChats];
+      });
+    },
+    [],
+  );
+
   const handleIncomingMessage = useCallback(
-    (msg: ChatMessageDTO) => {
+    (msg: ChatMessage) => {
       if (msg.chatId !== activeChatId && msg.senderId !== currentUserId) {
         setUnreadMessages((prev) => ({
           ...prev,
           [msg.chatId]: (prev[msg.chatId] || 0) + 1,
         }));
-        console.log("Incoming WebSocket msg:", msg)
+        console.log("Incoming WebSocket msg:", msg);
       }
+      updateChatPosition(msg.chatId, msg.sentAt as unknown as string);
     },
-    [activeChatId, currentUserId],
+    [activeChatId, currentUserId, updateChatPosition],
   );
 
   const handleSelectChat = (chatId: number, partnerName: string) => {
@@ -130,7 +228,6 @@ export const Chat: React.FC = () => {
           lastSeenAt: new Date().toISOString(),
         };
 
-        // Якщо статус прийшов саме для того юзера, з яким ми зараз спілкуємось
         if (update.userId === targetUserId) {
           setIsPartnerOnline(update.isOnline);
         }
@@ -144,45 +241,36 @@ export const Chat: React.FC = () => {
   useEffect(() => {
     if (!activeChatId) return;
 
-    // Fetch initial chat history
-    api
-      .get<ChatMessageDTO[] | { content: ChatMessageDTO[] }>(
-        `/chats/${activeChatId}/messages?page=0&size=30`,
-      )
-      .then((res) => {
-        const messageArray = Array.isArray(res.data)
-          ? res.data
-          : (res.data.content ?? []);
-        setMessages([...messageArray].reverse());
-        setTimeout(
-          () => scrollRef.current?.scrollIntoView({ behavior: "smooth" }),
-          50,
-        );
-      })
-      .catch((err) => console.error(`Failed to load chat history: ${err}`));
+    (async () => {
+      try {
+        await fetchMessages(0, true);
+      } catch (e) {
+        console.error(`Failed to fetch initial messages: ${e}`);
+      }
+    })();
 
-    // Subscribe to messages for the specific chat room via topic
     const unsubMsg = websocketService.subscribe(
       `/topic/chat.${activeChatId}`,
       (rawPayload) => {
-        const msg = rawPayload as ChatMessageDTO;
+        const msg = rawPayload as ChatMessage;
 
         if (msg.chatId === activeChatId) {
           setMessages((prev) => {
-            if (
-              prev.some(
-                (m) => m.sentAt === msg.sentAt && m.senderId === msg.senderId,
-              )
-            )
-              return prev;
+            const exists = prev.some((m) =>
+              m.id && msg.id
+                ? m.id === msg.id
+                : m.sentAt === msg.sentAt && m.senderId === msg.senderId,
+            );
+            if (exists) return prev;
             return [...prev, msg];
           });
-          setTimeout(
-            () => scrollRef.current?.scrollIntoView({ behavior: "smooth" }),
-            50,
-          );
 
-          handleIncomingMessage(msg)
+          requestAnimationFrame(() => {
+            scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+          });
+
+          handleIncomingMessage(msg);
+          updateChatPosition(msg.chatId, msg.sentAt as unknown as string);
         }
       },
     );
@@ -203,21 +291,29 @@ export const Chat: React.FC = () => {
       unsubMsg();
       unsubTyping();
     };
-  }, [activeChatId, currentUserId, handleIncomingMessage]);
+  }, [
+    activeChatId,
+    currentUserId,
+    fetchMessages,
+    handleIncomingMessage,
+    updateChatPosition,
+  ]);
 
   useEffect(() => {
-    if (!currentUserId) return
+    if (!currentUserId) return;
 
-    const unsubUserQueue = websocketService.subscribe("/user/queue/messages", (rawPayLoad) => {
-      const msg = rawPayLoad as ChatMessageDTO
-
-      handleIncomingMessage(msg)
-    })
+    const unsubUserQueue = websocketService.subscribe(
+      "/user/queue/messages",
+      (rawPayLoad) => {
+        const msg = rawPayLoad as ChatMessageDTO;
+        handleIncomingMessage(msg);
+      },
+    );
 
     return () => {
-      unsubUserQueue()
-    }
-  }, [currentUserId, activeChatId, handleIncomingMessage])
+      unsubUserQueue();
+    };
+  }, [currentUserId, activeChatId, handleIncomingMessage]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
@@ -328,12 +424,21 @@ export const Chat: React.FC = () => {
 
               {partnerTyping && (
                 <span className="text-xs font-semibold text-indigo-600 animate-pulse">
-                  💬 Partner is typing...
+                  💬 {partnerName} is typing...
                 </span>
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div
+              ref={scrollContainerRef}
+              onScroll={handleScroll}
+              className="flex-1 overflow-y-auto p-6 space-y-4"
+            >
+              {isLoadingMore && (
+                <div className="text-center py-2 text-sm text-gray-400">
+                  Loading chat history...
+                </div>
+              )}
               {messages.map((m) => {
                 const messageSenderId = getSenderId(m);
 

@@ -5,7 +5,7 @@ import {
   resolveProfileData,
 } from "../services/matchService";
 import { FullProfileModal } from "../components/FullProfileModal";
-import { useNavigate } from "react-router-dom"; // Для швидкого переходу в чат
+import { useNavigate, useLocation } from "react-router-dom"; // Для швидкого переходу в чат
 import type {
   ConnectionAggregatedProfile,
   ConnectionCardProps,
@@ -24,8 +24,17 @@ const Connections: React.FC<ConnectionCardProps> = () => {
   const [pendingRequests, setPendingRequests] = useState<
     ConnectionAggregatedProfile[]
   >([]);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    api
+      .get<{ id: number }>("/me")
+      .then((res) => setCurrentUserId(res.data.id))
+      .catch((err) => console.error(`Failed to fetch current user ID: ${err}`));
+  }, []);
 
   const loadAllData = async () => {
     try {
@@ -80,13 +89,14 @@ const Connections: React.FC<ConnectionCardProps> = () => {
       await loadAllData();
     };
     loadData();
-  }, []);
+  }, [location.pathname]);
 
   useEffect(() => {
-    const unsubscribe = websocketService.subscribe(
+    const unsubscribeStatus = websocketService.subscribe(
       `/topic/users.status`,
       (data: unknown) => {
         const serverData = data as { userId: number; status: string };
+
         console.log(
           `Received status update in Connections: ${JSON.stringify(serverData)}`,
         );
@@ -95,9 +105,9 @@ const Connections: React.FC<ConnectionCardProps> = () => {
 
         const updatedStatus: UserProfileStatusUpdate = {
           userId: serverData.userId,
-          isOnline: serverData.status === 'ONLINE',
-          lastSeenAt: new Date().toISOString()
-        }
+          isOnline: serverData.status === "ONLINE",
+          lastSeenAt: new Date().toISOString(),
+        };
 
         setConnections((prevConnections) =>
           prevConnections.map((user) =>
@@ -105,10 +115,9 @@ const Connections: React.FC<ConnectionCardProps> = () => {
               ? {
                   ...user,
                   isOnline: updatedStatus.isOnline,
-                  lastSeenAt:
-                    !updatedStatus.isOnline
-                      ? updatedStatus.lastSeenAt
-                      : user.lastSeenAt,
+                  lastSeenAt: !updatedStatus.isOnline
+                    ? updatedStatus.lastSeenAt
+                    : user.lastSeenAt,
                 }
               : user,
           ),
@@ -120,10 +129,9 @@ const Connections: React.FC<ConnectionCardProps> = () => {
               ? {
                   ...user,
                   isOnline: updatedStatus.isOnline,
-                  lastSeenAt:
-                    !updatedStatus.isOnline
-                      ? updatedStatus.lastSeenAt
-                      : user.lastSeenAt,
+                  lastSeenAt: !updatedStatus.isOnline
+                    ? updatedStatus.lastSeenAt
+                    : user.lastSeenAt,
                 }
               : user,
           ),
@@ -131,8 +139,25 @@ const Connections: React.FC<ConnectionCardProps> = () => {
       },
     );
 
-    return () => unsubscribe();
-  }, []);
+    let unSubscribeConnections: (() => void) | undefined;
+
+    if (currentUserId) {
+      unSubscribeConnections = websocketService.subscribe(
+        `/topic/connections.${currentUserId}`,
+        (data: unknown) => {
+          console.log(`Received connection event: ${data}`);
+          loadAllData();
+        },
+      );
+    }
+
+    return () => {
+      unsubscribeStatus();
+      if (unSubscribeConnections) {
+        unSubscribeConnections();
+      }
+    };
+  }, [currentUserId]);
 
   const handleRespond = async (
     connectionId: number,

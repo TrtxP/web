@@ -13,7 +13,7 @@ import { Profile } from "./pages/Profile";
 import Connections from "./pages/Connections";
 import { matchService } from "./services/matchService";
 import { websocketService } from "./services/websocket";
-import { type PrivateAggregatedProfile, isProfileComplete } from "./types";
+import { type PrivateAggregatedProfile } from "./types";
 
 function App() {
   const [profile, setProfile] = useState<PrivateAggregatedProfile | null>(null);
@@ -71,8 +71,6 @@ function App() {
     );
   }
 
-  const hasCompleteProfile = isProfileComplete(profile);
-
   const dummyProfile = {
     aboutMe: "",
     isOnline: false,
@@ -106,33 +104,21 @@ function App() {
           <Route
             path="/recommendations"
             element={
-              token && !hasCompleteProfile ? (
-                <Navigate to="/profile" state={{ forceFill: true }} replace />
-              ) : (
-                <Recommendations />
-              )
+              token ? <Recommendations /> : <Navigate to="/login" replace />
             }
           />
 
           <Route
             path="/connections"
             element={
-              token && !hasCompleteProfile ? (
-                <Navigate to="/profile" state={{ forceFill: true }} replace />
-              ) : (
-                <Connections user={connectionUserProps} />
-              )
+              token ? <Connections user={connectionUserProps} /> : <Navigate to="/login" replace />
             }
           />
 
           <Route
             path="/chat"
             element={
-              token && !hasCompleteProfile ? (
-                <Navigate to="/profile" state={{ forceFill: true }} replace />
-              ) : (
-                <Chat />
-              )
+              token ? <Chat /> : <Navigate to="/login" replace />
             }
           />
 
