@@ -1,11 +1,9 @@
 package com.matchme.backend.services;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -20,12 +18,10 @@ public class ConnectionService {
 
     private final ConnectionRepository connectionRepository;
     private final UserRepository userRepository;
-    private final SimpMessagingTemplate messagingTemplate;
 
-    public ConnectionService(ConnectionRepository connectionRepository, UserRepository userRepository, SimpMessagingTemplate messagingTemplate) {
+    public ConnectionService(ConnectionRepository connectionRepository, UserRepository userRepository) {
         this.connectionRepository = connectionRepository;
         this.userRepository = userRepository;
-        this.messagingTemplate = messagingTemplate;
     }
 
     // GET /connections — лише id прийнятих з'єднань
@@ -57,7 +53,7 @@ public class ConnectionService {
 
     public Connection requestConnection(Long requesterId, Long receiverId) {
         if (requesterId.equals(receiverId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't connect with yourself");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Не можна з'єднатись із самим собою");
         }
 
         Optional<Connection> existing = connectionRepository.findBetweenUsers(requesterId, receiverId);
@@ -70,7 +66,7 @@ public class ConnectionService {
                 connection.setStatus(ConnectionStatus.PENDING);
                 return connectionRepository.save(connection);
             }
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Connection between users is already existed");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Зв'язок між користувачами вже існує");
         }
 
         User requester = userRepository.findById(requesterId)
@@ -82,12 +78,7 @@ public class ConnectionService {
         connection.setRequester(requester);
         connection.setReceiver(receiver);
         connection.setStatus(ConnectionStatus.PENDING);
-
-        Connection savedConnection = connectionRepository.save(connection);
-
-        messagingTemplate.convertAndSend("/topic/connections." + receiverId, (Object) Map.of("type", "NEW_REQUEST", "connectionId", savedConnection.getId()));
-
-        return savedConnection;
+        return connectionRepository.save(connection);
     }
 
     public Connection dismissRecommendation(Long userId, Long targetId) {
@@ -113,18 +104,11 @@ public class ConnectionService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         if (!connection.getReceiver().getId().equals(respondingUserId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the recipient of the request can respond to it");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Тільки отримувач запиту може відповісти на нього");
         }
 
         connection.setStatus(accept ? ConnectionStatus.ACCEPTED : ConnectionStatus.DECLINED);
-        
-        Connection savedConnection = connectionRepository.save(connection);
-
-        if (accept) {
-            messagingTemplate.convertAndSend("/topic/connections." + connection.getRequester().getId(), (Object) Map.of("type", "REQUEST_ACCEPTED", "connectionId", savedConnection.getId()));
-        }
-
-        return savedConnection;
+        return connectionRepository.save(connection);
     }
 
     public void disconnect(Long userId, Long otherUserId) {
@@ -132,7 +116,7 @@ public class ConnectionService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         if (connection.getStatus() != ConnectionStatus.ACCEPTED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Users aren't connected");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Користувачі не з'єднані");
         }
 
         connectionRepository.delete(connection);

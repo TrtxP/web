@@ -16,7 +16,7 @@ export const Recommendations: React.FC = () => {
       try {
         const profileIds = await matchService.getRecommendations();
         const profilesHydrated = await Promise.all(
-          profileIds.map((id) => resolveProfileData(id)),
+          profileIds.slice(0, 10).map((id) => resolveProfileData(id)),
         );
         setProfiles(profilesHydrated);
       } catch (err) {

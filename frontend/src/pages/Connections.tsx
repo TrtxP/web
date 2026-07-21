@@ -5,7 +5,7 @@ import {
   resolveProfileData,
 } from "../services/matchService";
 import { FullProfileModal } from "../components/FullProfileModal";
-import { useNavigate, useLocation } from "react-router-dom"; // Для швидкого переходу в чат
+import { useNavigate } from "react-router-dom"; // Для швидкого переходу в чат
 import type {
   ConnectionAggregatedProfile,
   ConnectionCardProps,
@@ -24,17 +24,8 @@ const Connections: React.FC<ConnectionCardProps> = () => {
   const [pendingRequests, setPendingRequests] = useState<
     ConnectionAggregatedProfile[]
   >([]);
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation()
-
-  useEffect(() => {
-    api
-      .get<{ id: number }>("/me")
-      .then((res) => setCurrentUserId(res.data.id))
-      .catch((err) => console.error(`Failed to fetch current user ID: ${err}`))
-  }, [])
 
   const loadAllData = async () => {
     try {
@@ -89,14 +80,13 @@ const Connections: React.FC<ConnectionCardProps> = () => {
       await loadAllData();
     };
     loadData();
-  }, [location.pathname]);
+  }, []);
 
   useEffect(() => {
-    const unsubscribeStatus = websocketService.subscribe(
+    const unsubscribe = websocketService.subscribe(
       `/topic/users.status`,
       (data: unknown) => {
         const serverData = data as { userId: number; status: string };
-
         console.log(
           `Received status update in Connections: ${JSON.stringify(serverData)}`,
         );
@@ -141,22 +131,8 @@ const Connections: React.FC<ConnectionCardProps> = () => {
       },
     );
 
-    let unSubscribeConnections: (() => void) | undefined
-
-    if (currentUserId) {
-      unSubscribeConnections = websocketService.subscribe(`/topic/connections.${currentUserId}`, (data: unknown) => {
-        console.log(`Received connection event: ${data}`)
-        loadAllData()
-      })
-    }
-
-    return () => {
-      unsubscribeStatus()
-      if (unSubscribeConnections) {
-        unSubscribeConnections()
-      }
-    };
-  }, [currentUserId]);
+    return () => unsubscribe();
+  }, []);
 
   const handleRespond = async (
     connectionId: number,

@@ -13,7 +13,7 @@ import { Profile } from "./pages/Profile";
 import Connections from "./pages/Connections";
 import { matchService } from "./services/matchService";
 import { websocketService } from "./services/websocket";
-import { type PrivateAggregatedProfile } from "./types";
+import { type PrivateAggregatedProfile, isProfileComplete } from "./types";
 
 function App() {
   const [profile, setProfile] = useState<PrivateAggregatedProfile | null>(null);
@@ -71,6 +71,8 @@ function App() {
     );
   }
 
+  const hasCompleteProfile = isProfileComplete(profile);
+
   const dummyProfile = {
     aboutMe: "",
     isOnline: false,
@@ -101,25 +103,36 @@ function App() {
             element={<Profile onProfileUpdate={fetchProfile} />}
           />
 
-          {/* Сторінки доступні авторизованому користувачу незалежно від стану заповненості профілю */}
           <Route
             path="/recommendations"
             element={
-              token ? <Recommendations /> : <Navigate to="/login" replace />
+              token && !hasCompleteProfile ? (
+                <Navigate to="/profile" state={{ forceFill: true }} replace />
+              ) : (
+                <Recommendations />
+              )
             }
           />
 
           <Route
             path="/connections"
             element={
-              token ? <Connections user={connectionUserProps} /> : <Navigate to="/login" replace />
+              token && !hasCompleteProfile ? (
+                <Navigate to="/profile" state={{ forceFill: true }} replace />
+              ) : (
+                <Connections user={connectionUserProps} />
+              )
             }
           />
 
           <Route
             path="/chat"
             element={
-              token ? <Chat /> : <Navigate to="/login" replace />
+              token && !hasCompleteProfile ? (
+                <Navigate to="/profile" state={{ forceFill: true }} replace />
+              ) : (
+                <Chat />
+              )
             }
           />
 
