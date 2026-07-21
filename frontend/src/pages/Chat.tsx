@@ -420,7 +420,7 @@ export const Chat: React.FC = () => {
                 <span
                   className={`text-xs font-semibold ${isPartnerOnline || partnerTyping ? "text-green-600" : "text-gray-400"}`}
                 >
-                  {isPartnerOnline || partnerTyping ? "● online" : "offline"}
+                  {isPartnerOnline || partnerTyping ? "● online" : "last seen recently"}
                 </span>
               </div>
 
