@@ -64,7 +64,7 @@ export interface UserSummary {
 
 export interface ChatMessage {
   id?: number;
-  chatId: number;
+  chatId?: number;
   senderId?: number;
   sender?: UserSummary;
   receiverId?: number;
