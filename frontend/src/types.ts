@@ -27,7 +27,7 @@ export interface MyPrivateUserDTO {
 
 export interface UserProfileDTO {
   aboutMe: string;
-  isOnline: boolean;
+  isOnline?: boolean;
   lastSeenAt?: string;
   city: string;
   age: number;

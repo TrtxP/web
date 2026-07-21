@@ -14,5 +14,6 @@ public class UserProfileResponseDTO {
     private Double longitude;
     private Integer preferredDistance;
     private Boolean recommendByCityOnly;
+    private Boolean isOnline;
     private LocalDateTime lastSeenAt;
 }

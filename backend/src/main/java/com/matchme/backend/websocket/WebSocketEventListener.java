@@ -1,8 +1,7 @@
 package com.matchme.backend.websocket;
 
 import com.matchme.backend.dto.UserStatusUpdateDTO;
-import com.matchme.backend.services.UserService;
-
+import com.matchme.backend.services.UserProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -19,7 +18,7 @@ import java.security.Principal;
 @Slf4j
 public class WebSocketEventListener {
     private final SimpMessagingTemplate messagingTemplate;
-    private final UserService userService;
+    private final UserProfileService userProfileService;
 
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectEvent event) {
@@ -30,7 +29,7 @@ public class WebSocketEventListener {
         if (userId != null) {
             log.info("User with ID {} connected to WebSocket", userId);
 
-            userService.updateUserStatus(userId, true);
+            userProfileService.updateUserStatus(userId, true);
 
             messagingTemplate.convertAndSend("/topic/users.status", new UserStatusUpdateDTO(userId, "ONLINE"));
         }
@@ -44,7 +43,7 @@ public class WebSocketEventListener {
         if (userId != null) {
             log.info("User with ID {} disconnected from WebSocket", userId);
 
-            userService.updateUserStatus(userId, false);
+            userProfileService.updateUserStatus(userId, false);
 
             messagingTemplate.convertAndSend("/topic/users.status", new UserStatusUpdateDTO(userId, "OFFLINE"));
         }

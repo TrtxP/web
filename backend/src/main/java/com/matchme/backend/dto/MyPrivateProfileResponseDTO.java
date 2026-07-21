@@ -8,5 +8,4 @@ public class MyPrivateProfileResponseDTO {
     private String name;
     private String email;
     private String profilePictureUrl;
-    private Boolean isOnline;
 }

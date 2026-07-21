@@ -12,10 +12,14 @@ import com.matchme.backend.models.UserProfile;
 
 import jakarta.transaction.Transactional;
 
-
 public interface UserProfileRepository extends JpaRepository<UserProfile, Long> {
     @Query("SELECT p FROM UserProfile p WHERE p.user.id <> :currentUserId")
     List<UserProfile> findRecommendationsForUser(@Param("currentUserId") Long currentUserId);
+
+    @Modifying(clearAutomatically = true)
+    @Transactional
+    @Query("UPDATE UserProfile up SET up.isOnline = :isOnline WHERE up.user.id = :userId")
+    void updateOnlineStatus(@Param("userId") Long userId, @Param("isOnline") boolean isOnline);
 
     @Modifying(clearAutomatically = true)
     @Transactional

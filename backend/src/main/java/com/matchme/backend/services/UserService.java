@@ -1,6 +1,5 @@
 package com.matchme.backend.services;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
@@ -14,13 +13,11 @@ import com.matchme.backend.repositories.*;
 @Service
 public class UserService {
     private final UserRepository userRepository;
-    private final UserProfileRepository userProfileRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, UserProfileRepository userProfileRepository,
+    public UserService(UserRepository userRepository, 
             PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        this.userProfileRepository = userProfileRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -84,13 +81,6 @@ public class UserService {
         }
 
         return userRepository.save(existingUser);
-    }
-
-    public void updateUserStatus(Long userId, boolean isOnline) {
-        userRepository.updateOnlineStatus(userId, isOnline);
-        if (isOnline == false) {
-            userProfileRepository.updateLastSeenTime(userId, LocalDateTime.now());
-        }
     }
 
     public void deleteUser(Long id) {

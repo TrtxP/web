@@ -33,6 +33,9 @@ export const Chat: React.FC = () => {
   const targetUserId = userIdParam ? Number(userIdParam) : null;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  const activePartner = chats.find((chat) => chat.id === activeChatId);
+  const activePartnerId = activePartner?.partnerId ?? targetUserId;
+
   const fetchMessages = useCallback(
     async (pageNum: number, isInitial = false) => {
       if (!activeChatId) return;
@@ -101,10 +104,10 @@ export const Chat: React.FC = () => {
 
   const getSenderId = (message: ChatMessage): number | null => {
     if (message.senderId !== undefined && message.senderId !== null) {
-      return message.senderId; // З WebSocket (ChatMessageDTO)
+      return message.senderId;
     }
     if (message.sender && message.sender.id) {
-      return message.sender.id; // З REST API (/messages)
+      return message.sender.id;
     }
     return null;
   };
@@ -117,7 +120,6 @@ export const Chat: React.FC = () => {
       setChats((prevChats) => {
         const chatIndex = prevChats.findIndex((c) => c.id === chatId);
 
-        // Якщо чату ще немає в списку (новий чат), перезавантажуємо список через API
         if (chatIndex === -1) {
           matchService.getUserChats().then(setChats).catch(console.error);
           return prevChats;
@@ -142,7 +144,6 @@ export const Chat: React.FC = () => {
           ...prev,
           [msg.chatId]: (prev[msg.chatId] || 0) + 1,
         }));
-        console.log("Incoming WebSocket msg:", msg);
       }
       updateChatPosition(msg.chatId, msg.sentAt as unknown as string);
     },
@@ -152,8 +153,8 @@ export const Chat: React.FC = () => {
   const handleSelectChat = (chatId: number, partnerName: string) => {
     setActiveChatId(chatId);
     setPartnerName(partnerName);
+    setPartnerTyping(false);
 
-    // Скидаємо непрочитані для обраного чату
     setUnreadMessages((prev) => ({
       ...prev,
       [chatId]: 0,
@@ -165,6 +166,19 @@ export const Chat: React.FC = () => {
       .get<{ id: number }>("/me")
       .then((res) => setCurrentUserId(res.data.id))
       .catch((err) => console.error(`Failed to fetch current user: ${err}`));
+  }, []);
+
+  useEffect(() => {
+    const fetchUserChats = async () => {
+      try {
+        const data = await matchService.getUserChats();
+        setChats(data);
+      } catch (err) {
+        console.error(`Failed to load conversations: ${err}`);
+      }
+    };
+
+    fetchUserChats();
   }, []);
 
   useEffect(() => {
@@ -180,6 +194,7 @@ export const Chat: React.FC = () => {
           name: string;
           isOnline?: boolean;
         }>(`/users/${targetUserId}`);
+
         setPartnerName(partnerRes.data.name);
         if (typeof partnerRes.data.isOnline !== "undefined") {
           setIsPartnerOnline(partnerRes.data.isOnline);
@@ -195,20 +210,20 @@ export const Chat: React.FC = () => {
   }, [targetUserId]);
 
   useEffect(() => {
-    const fetchUserChats = async () => {
-      try {
-        const data = await matchService.getUserChats();
-        setChats(data);
-      } catch (err) {
-        console.error(`Failed to load conversations: ${err}`);
-      }
-    };
+    if (!activePartnerId) return;
 
-    fetchUserChats();
-  }, [activeChatId]);
+    api
+      .get<{ isOnline?: boolean }>(`/users/${activePartnerId}`)
+      .then((res) => {
+        if (typeof res.data.isOnline !== "undefined") {
+          setIsPartnerOnline(res.data.isOnline);
+        }
+      })
+      .catch((err) => console.error(`Failed to fetch partner status: ${err}`));
+  }, [activePartnerId]);
 
   useEffect(() => {
-    if (!targetUserId) return;
+    if (!activePartnerId) return;
 
     const unsubscribe = websocketService.subscribe(
       `/topic/users.status`,
@@ -218,26 +233,21 @@ export const Chat: React.FC = () => {
           status: string;
         };
 
-        console.log(
-          `Received status update in Chat: ${JSON.stringify(serverData)}`,
-        );
-
         const update: UserProfileStatusUpdate = {
           userId: serverData.userId,
           isOnline: serverData.status === "ONLINE",
           lastSeenAt: new Date().toISOString(),
         };
 
-        if (update.userId === targetUserId) {
+        if (update.userId === activePartnerId) {
           setIsPartnerOnline(update.isOnline);
         }
       },
     );
 
     return () => unsubscribe();
-  }, [targetUserId]);
+  }, [activePartnerId]);
 
-  // Load chat history and subscribe to real-time updates
   useEffect(() => {
     if (!activeChatId) return;
 
@@ -275,7 +285,6 @@ export const Chat: React.FC = () => {
       },
     );
 
-    // Subscribe to typing indicator for this specific chat
     const unsubTyping = websocketService.subscribe(
       `/topic/chat.${activeChatId}.typing`,
       (rawPayload) => {
@@ -313,13 +322,12 @@ export const Chat: React.FC = () => {
     return () => {
       unsubUserQueue();
     };
-  }, [currentUserId, activeChatId, handleIncomingMessage]);
+  }, [currentUserId, handleIncomingMessage]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
     if (!activeChatId) return;
 
-    // Send typing indicator
     websocketService.send("/app/chat.typing", {
       chatId: activeChatId,
       typing: e.target.value.length > 0,
@@ -344,10 +352,8 @@ export const Chat: React.FC = () => {
     };
 
     try {
-      // Send message via WebSocket
       websocketService.send("/app/chat.send", payload);
       setInputValue("");
-      // Send typing stopped indicator
       websocketService.send("/app/chat.typing", {
         chatId: activeChatId,
         typing: false,
@@ -369,11 +375,7 @@ export const Chat: React.FC = () => {
           chats.map((chat) => (
             <button
               key={chat.id}
-              onClick={() => {
-                setActiveChatId(chat.id);
-                setPartnerName(chat.partnerName);
-                handleSelectChat(chat.id, chat.partnerName);
-              }}
+              onClick={() => handleSelectChat(chat.id, chat.partnerName)}
               className={`w-full text-left p-3 rounded-xl transition font-medium text-sm border flex items-center justify-between ${
                 activeChatId === chat.id
                   ? "bg-indigo-50 border-indigo-200 text-indigo-700"

@@ -1,5 +1,6 @@
 package com.matchme.backend.services;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.owasp.html.PolicyFactory;
@@ -113,6 +114,13 @@ public class UserProfileService {
         }
 
         return userProfileRepository.save(existingProfile);
+    }
+
+    public void updateUserStatus(Long userId, boolean isOnline) {
+        userProfileRepository.updateOnlineStatus(userId, isOnline);
+        if (isOnline == false) {
+            userProfileRepository.updateLastSeenTime(userId, LocalDateTime.now());
+        }
     }
 
     public void deleteProfile(Long userId) {

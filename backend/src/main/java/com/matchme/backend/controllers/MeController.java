@@ -73,7 +73,6 @@ public class MeController {
         dto.setName(user.getName());
         dto.setEmail(user.getEmail());
         dto.setProfilePictureUrl(user.getProfilePictureUrl());
-        dto.setIsOnline(user.getIsOnline());
         return ResponseEntity.ok(dto);
     }
 
@@ -86,7 +85,6 @@ public class MeController {
         dto.setName(existingUser.getName());
         dto.setEmail(existingUser.getEmail());
         dto.setProfilePictureUrl(existingUser.getProfilePictureUrl());
-        dto.setIsOnline(existingUser.getIsOnline());
         return ResponseEntity.status(HttpStatus.OK).body(existingUser);
     }
 
@@ -99,7 +97,6 @@ public class MeController {
         dto.setName(existingUser.getName());
         dto.setEmail(existingUser.getEmail());
         dto.setProfilePictureUrl(existingUser.getProfilePictureUrl());
-        dto.setIsOnline(existingUser.getIsOnline());
         return ResponseEntity.status(HttpStatus.OK).body(existingUser);
     }
 
@@ -126,6 +123,7 @@ public class MeController {
         dto.setLongitude(profile.getLongitude());
         dto.setPreferredDistance(profile.getPreferredDistance());
         dto.setRecommendByCityOnly(profile.getRecommendByCityOnly());
+        dto.setIsOnline(profile.getIsOnline());
         dto.setLastSeenAt(profile.getLastSeenAt());
         return ResponseEntity.status(HttpStatus.OK).body(dto);
     }

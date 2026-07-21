@@ -36,7 +36,4 @@ public class User {
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserBio userBio;
-
-    @Column(name = "is_online")
-    private Boolean isOnline = false;
 }

@@ -39,6 +39,7 @@ public class UserProfileController {
         userProfileResponseDTO.setLongitude(userProfile.getLongitude());
         userProfileResponseDTO.setPreferredDistance(userProfile.getPreferredDistance());
         userProfileResponseDTO.setRecommendByCityOnly(userProfile.getRecommendByCityOnly());
+        userProfileResponseDTO.setIsOnline(userProfile.getIsOnline());
         userProfileResponseDTO.setLastSeenAt(userProfile.getLastSeenAt());
         return ResponseEntity.status(HttpStatus.OK).body(userProfileResponseDTO);
     }

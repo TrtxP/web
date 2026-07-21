@@ -15,7 +15,6 @@ import org.springframework.web.server.ResponseStatusException;
 import com.matchme.backend.dto.LoginRequestDTO;
 import com.matchme.backend.dto.LoginResponseDTO;
 import com.matchme.backend.models.User;
-import com.matchme.backend.repositories.UserBioRepository;
 import com.matchme.backend.repositories.UserProfileRepository;
 import com.matchme.backend.repositories.UserRepository;
 import com.matchme.backend.security.JwtService;
@@ -28,15 +27,16 @@ import net.datafaker.Faker;
 public class AuthController {
 
     private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
     public AuthController(UserRepository userRepository,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService,
             UserProfileRepository userProfileRepository,
-            UserBioRepository userBioRepository) {
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService) {
         this.userRepository = userRepository;
+        this.userProfileRepository = userProfileRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
@@ -50,8 +50,7 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Невірний email або пароль");
         }
 
-        user.setIsOnline(true);
-        userRepository.save(user);
+        userProfileRepository.updateOnlineStatus(user.getId(), true);
 
         String token = jwtService.generateToken(user.getId());
         return ResponseEntity.ok(new LoginResponseDTO(user.getId(), token));

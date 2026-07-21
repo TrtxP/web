@@ -42,7 +42,7 @@ export const FullProfileModal: React.FC<FullProfileModalProps> = ({
     );
 
     return () => unsubscribe();
-  }, [initialProfile?.id]);
+  }, [initialProfile?.id, initialProfile?.lastSeenAt]);
 
   return (
     <div
