@@ -2,6 +2,15 @@
 
 This repository contains the full-stack source code for the **Match-Me** web application. The project is built using a **Spring Boot** backend and a **Vite + React (TypeScript)** frontend, orchestrated to run concurrently using Node.js tools.
 
+## Recommendation algorithm
+
+The recommendation system prioritizes matches based on the following factors:
+
+- Users can set a preferred distance for locations, so only people within the selected range are considered.
+- Recommendations are shown by city only, which helps keep the suggestions geographically relevant.
+- The algorithm looks for one or two shared interests between users to strengthen the compatibility signal.
+- It also considers whether people enjoy long walks and whether they are looking for values such as Friends or Relationships, allowing those preferences to influence the final recommendations.
+
 ---
 
 ## Prerequisites
