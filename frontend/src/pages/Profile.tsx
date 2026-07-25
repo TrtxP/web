@@ -9,6 +9,7 @@ import {
 } from "../types";
 import { getUserStatus } from "../utils/date";
 import { EditProfileModal } from "../components/EditProfileModal";
+import { getAvatarUrl } from "../utils/avatar";
 
 export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
   const location = useLocation();
@@ -288,14 +289,6 @@ export const Profile: React.FC<ProfileProps> = ({ onProfileUpdate }) => {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const getAvatarUrl = (url: string | undefined) => {
-    if (!url) return "";
-    if (url.startsWith("/uploads")) {
-      return `http://localhost:8080${url}`;
-    }
-    return url;
   };
 
   if (loading) {

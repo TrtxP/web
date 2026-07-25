@@ -4,6 +4,7 @@ import {
   type UserProfileStatusUpdate,
 } from "../types";
 import { websocketService } from "../services/websocket";
+import { getAvatarUrl } from '../utils/avatar';
 
 export const FullProfileModal: React.FC<FullProfileModalProps> = ({
   profile: initialProfile,
@@ -65,7 +66,7 @@ export const FullProfileModal: React.FC<FullProfileModalProps> = ({
           <div className="relative w-36 h-36 mb-6">
             {profile.profilePictureUrl ? (
               <img
-                src={profile.profilePictureUrl}
+                src={getAvatarUrl(profile.profilePictureUrl)}
                 alt={profile.name}
                 className="w-full h-full object-cover rounded-full border-4 border-gray-50 shadow-md"
               />

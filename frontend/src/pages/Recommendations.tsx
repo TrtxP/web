@@ -4,6 +4,7 @@ import { FullProfileModal } from "../components/FullProfileModal";
 import type { AggregatedProfile, UserProfileStatusUpdate } from "../types";
 import { getUserStatus } from "../utils/date";
 import { websocketService } from "../services/websocket";
+import { getAvatarUrl } from '../utils/avatar';
 
 // Рендеримо як компонент без вхідних пропсів (як сторінку)
 export const Recommendations: React.FC = () => {
@@ -103,7 +104,7 @@ export const Recommendations: React.FC = () => {
                 <div className="relative w-28 h-28 mb-4">
                   {profile.profilePictureUrl ? (
                     <img
-                      src={profile.profilePictureUrl}
+                      src={getAvatarUrl(profile.profilePictureUrl)}
                       alt={profile.name}
                       className="w-full h-full object-cover rounded-full border-2 border-white shadow-sm"
                     />

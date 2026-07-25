@@ -13,6 +13,7 @@ import type {
 } from "../types";
 import { getUserStatus } from "../utils/date";
 import { websocketService } from "../services/websocket";
+import { getAvatarUrl } from '../utils/avatar';
 
 const Connections: React.FC<ConnectionCardProps> = () => {
   const [connections, setConnections] = useState<ConnectionAggregatedProfile[]>(
@@ -232,7 +233,7 @@ const Connections: React.FC<ConnectionCardProps> = () => {
                   <div className="relative w-28 h-28 mb-4">
                     {user.profilePictureUrl ? (
                       <img
-                        src={user.profilePictureUrl}
+                        src={getAvatarUrl(user.profilePictureUrl)}
                         alt={user.name}
                         className="w-full h-full object-cover rounded-full"
                       />
