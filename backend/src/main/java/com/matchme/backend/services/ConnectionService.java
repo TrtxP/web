@@ -7,11 +7,14 @@ import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.matchme.backend.models.Chat;
 import com.matchme.backend.models.Connection;
 import com.matchme.backend.models.ConnectionStatus;
 import com.matchme.backend.models.User;
+import com.matchme.backend.repositories.ChatRepository;
 import com.matchme.backend.repositories.ConnectionRepository;
 import com.matchme.backend.repositories.UserRepository;
 
@@ -21,12 +24,14 @@ public class ConnectionService {
     private final ConnectionRepository connectionRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ChatRepository chatRepository;
 
     public ConnectionService(ConnectionRepository connectionRepository, UserRepository userRepository,
-            SimpMessagingTemplate messagingTemplate) {
+            SimpMessagingTemplate messagingTemplate, ChatRepository chatRepository) {
         this.connectionRepository = connectionRepository;
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
+        this.chatRepository = chatRepository;
     }
 
     // GET /connections — лише id прийнятих з'єднань
@@ -131,6 +136,7 @@ public class ConnectionService {
         return savedConnection;
     }
 
+    @Transactional
     public void disconnect(Long userId, Long otherUserId) {
         Connection connection = connectionRepository.findBetweenUsers(userId, otherUserId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -139,6 +145,18 @@ public class ConnectionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Users aren't connected");
         }
 
+        Optional<Chat> chat = chatRepository.findBetweenUsers(userId, otherUserId);
+        if (chat.isPresent()) {
+            Long chatId = chat.get().getId();
+
+            chatRepository.deleteByChatId(chatId);
+            chatRepository.delete(chat.get());
+        }
+
         connectionRepository.delete(connection);
+
+        messagingTemplate.convertAndSend("/topic/connections." + otherUserId,
+                (Object) Map.of("type", "DISCONNECTED", "connectionId", connection.getId(), "partnerId", userId,
+                        "chatId", chat.get().getId()));
     }
 }

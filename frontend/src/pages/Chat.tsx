@@ -18,6 +18,7 @@ export const Chat: React.FC = () => {
   const [partnerName, setPartnerName] = useState<string | null>(null);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [isPartnerOnline, setIsPartnerOnline] = useState<boolean>(false);
+  const [chatUnavailableMessage, setChatUnavailableMessage] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
@@ -145,7 +146,7 @@ export const Chat: React.FC = () => {
           [msg.chatId]: (prev[msg.chatId] || 0) + 1,
         }));
       }
-      updateChatPosition(msg.chatId, msg.sentAt as unknown as string);
+      updateChatPosition(msg.chatId, msg.sentAt as string);
     },
     [activeChatId, currentUserId, updateChatPosition],
   );
@@ -154,6 +155,7 @@ export const Chat: React.FC = () => {
     setActiveChatId(chatId);
     setPartnerName(partnerName);
     setPartnerTyping(false);
+    setChatUnavailableMessage(null);
 
     setUnreadMessages((prev) => ({
       ...prev,
@@ -188,6 +190,7 @@ export const Chat: React.FC = () => {
       try {
         const chatId = await matchService.getOrCreateChat(targetUserId);
         setActiveChatId(chatId);
+        setChatUnavailableMessage(null);
 
         const partnerRes = await api.get<{
           id: number;
@@ -323,6 +326,149 @@ export const Chat: React.FC = () => {
       unsubUserQueue();
     };
   }, [currentUserId, handleIncomingMessage]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const unsubscribeConnectionEvents = websocketService.subscribe(
+      `/topic/connections.${currentUserId}`,
+      (rawPayload) => {
+        const event = rawPayload as {
+          status?: string;
+          type?: string;
+          partnerId?: number;
+          chatId?: number;
+        };
+
+        const eventType =
+          event.status ||
+          event.type ||
+          (typeof rawPayload === "string" ? rawPayload : undefined);
+
+        if (eventType !== "DISCONNECTED") {
+          return;
+        }
+
+        const disconnectedPartnerId = event.partnerId;
+        const disconnectedChatId = event.chatId;
+
+        setChats((prevChats) => {
+          const removedChat = prevChats.find((chat) =>
+            typeof disconnectedPartnerId === "number"
+              ? chat.partnerId === disconnectedPartnerId
+              : disconnectedChatId
+              ? chat.id === disconnectedChatId
+              : false,
+          );
+
+          const updatedChats = prevChats.filter((chat) =>
+            typeof disconnectedPartnerId === "number"
+              ? chat.partnerId !== disconnectedPartnerId
+              : disconnectedChatId
+              ? chat.id !== disconnectedChatId
+              : true,
+          );
+
+          if (
+            removedChat?.id === activeChatId ||
+            disconnectedChatId === activeChatId ||
+            (typeof disconnectedPartnerId === "number" &&
+              disconnectedPartnerId === activePartnerId)
+          ) {
+            setActiveChatId(null);
+            setPartnerName(null);
+            setMessages([]);
+            setChatUnavailableMessage("This dialogue isn't available");
+          }
+
+          return updatedChats;
+        });
+
+        if (
+          typeof disconnectedPartnerId !== "number" &&
+          typeof disconnectedChatId !== "number"
+        ) {
+          matchService
+            .getUserChats()
+            .then(setChats)
+            .catch((err) =>
+              console.error(`Failed to refresh conversations: ${err}`),
+            );
+        }
+      },
+    );
+
+    return () => {
+      unsubscribeConnectionEvents();
+    };
+  }, [currentUserId, activeChatId, activePartnerId]);
+
+  // Optional enhancement: also listen to partner's connection channel so that
+  // if this client is the initiator and the server only broadcasts DISCONNECTED
+  // to the otherUserId channel, we still receive it (second tab/session case).
+  useEffect(() => {
+    if (!activePartnerId || !currentUserId) return;
+
+    const unsubPartnerConnections = websocketService.subscribe(
+      `/topic/connections.${activePartnerId}`,
+      (rawPayload) => {
+        const event = rawPayload as {
+          status?: string;
+          type?: string;
+          partnerId?: number;
+          chatId?: number;
+        };
+
+        const eventType =
+          event.status ||
+          event.type ||
+          (typeof rawPayload === "string" ? rawPayload : undefined);
+
+        if (eventType !== "DISCONNECTED") return;
+
+        const disconnectedPartnerId = event.partnerId;
+        const disconnectedChatId = event.chatId;
+
+        // We're listening on partner's channel; consider only events where
+        // partnerId equals our current user id (i.e. we were the partner)
+        if (disconnectedPartnerId !== currentUserId) return;
+
+        setChats((prevChats) => {
+          const removedChat = prevChats.find((chat) =>
+            typeof disconnectedPartnerId === "number"
+              ? chat.partnerId === disconnectedPartnerId
+              : disconnectedChatId
+              ? chat.id === disconnectedChatId
+              : false,
+          );
+
+          const updatedChats = prevChats.filter((chat) =>
+            typeof disconnectedPartnerId === "number"
+              ? chat.partnerId !== disconnectedPartnerId
+              : disconnectedChatId
+              ? chat.id !== disconnectedChatId
+              : true,
+          );
+
+          if (
+            removedChat?.id === activeChatId ||
+            disconnectedChatId === activeChatId ||
+            (typeof disconnectedPartnerId === "number" &&
+              disconnectedPartnerId === activePartnerId)
+          ) {
+            setActiveChatId(null);
+            setPartnerName(null);
+            setMessages([]);
+            setChatUnavailableMessage("This dialogue isn't available");
+          }
+
+          return updatedChats;
+        });
+      },
+    );
+
+    return () => unsubPartnerConnections();
+  }, [activePartnerId, currentUserId, activeChatId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
@@ -494,7 +640,7 @@ export const Chat: React.FC = () => {
           </>
         ) : (
           <div className="m-auto text-gray-400 font-medium text-sm">
-            Select a connection thread to start chatting.
+            {chatUnavailableMessage ?? "Select a connection thread to start chatting."}
           </div>
         )}
       </div>
