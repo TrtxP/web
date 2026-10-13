@@ -1,183 +1,31 @@
-import axios from "axios";
-import type {
-  UserDTO,
-  UserProfileDTO,
-  UserBioDTO,
-  IdResponseDTO,
-  AggregatedProfile,
-  PrivateAggregatedProfile,
-  MyPrivateUserDTO,
-  ConnectionAggregatedProfile,
-  ChatSummary,
-} from "../types";
+import { api } from "../shared/api/httpClient.ts";
+import {
+  resolveProfileData,
+  getMyFullProfile,
+  updateProfile,
+  uploadProfilePicture,
+  deleteProfilePicture,
+} from "../entities/user/api/userApi.ts";
+import { recommendationsApi } from "../features/recommendations/api/recommendationsApi.ts";
+import { connectionsApi } from "../features/connections/api/connectionsApi.ts";
+import { chatApi } from "../features/chat/api/chatApi.ts";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
-
-export const api = axios.create({
-  baseURL: API_URL,
-  withCredentials: true,
-});
-
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (err) => {
-    return Promise.reject(err);
-  },
-);
-
-// Compiles split endpoint data models securely into a single interface
-export const resolveProfileData = async (
-  id: number,
-): Promise<AggregatedProfile> => {
-  const [userRes, profileRes, bioRes] = await Promise.all([
-    api.get<UserDTO>(`/users/${id}`),
-    api.get<UserProfileDTO>(`/users/${id}/profile`),
-    api.get<UserBioDTO>(`/users/${id}/bio`),
-  ]);
-
-  return {
-    // ensure required fields from AggregatedProfile exist; provide sensible defaults
-    ...userRes.data,
-    ...profileRes.data,
-    ...bioRes.data,
-    preferredDistance:
-      (profileRes.data as AggregatedProfile)?.preferredDistance ?? 0,
-  };
-};
+export { api, resolveProfileData };
 
 export const matchService = {
-  getRecommendations: async (): Promise<number[]> => {
-    const res = await api.get<IdResponseDTO[]>("/recommendations");
-    return res.data.map((item) => item.id);
-  },
-  dismissRecommendation: async (targetId: number): Promise<void> => {
-    await api.delete(`/recommendations/${targetId}`);
-  },
-  getFullRecommendations: async (): Promise<AggregatedProfile[]> => {
-    try {
-      const ids = await matchService.getRecommendations();
-
-      if (!ids || ids.length === 0) return [];
-
-      const fullProfiles = await Promise.all(
-        ids.map(async (id) => {
-          try {
-            return await resolveProfileData(id);
-          } catch (err) {
-            console.error(`Error data loading for the ID ${id}: ${err}`);
-            return null;
-          }
-        }),
-      );
-
-      return fullProfiles.filter((p): p is AggregatedProfile => p !== null);
-    } catch (err) {
-      console.error(`Failed to load full recommendations: ${err}`);
-      throw err;
-    }
-  },
-  getConnections: async (): Promise<number[]> => {
-    const res = await api.get<IdResponseDTO[]>("/connections");
-    return res.data.map((item) => item.id);
-  },
-  // Додати в matchService всередині types.ts / matchService.ts
-  getFullConnections: async (): Promise<ConnectionAggregatedProfile[]> => {
-    try {
-      const ids = await matchService.getConnections(); // Отримуємо [4, 12...]
-
-      if (!ids || ids.length === 0) return [];
-
-      const fullProfiles = await Promise.all(
-        ids.map(async (id) => {
-          try {
-            return await resolveProfileData(id);
-          } catch (err) {
-            console.error(`Error loading connection data for ID ${id}: ${err}`);
-            return null;
-          }
-        }),
-      );
-
-      return fullProfiles.filter(
-        (p): p is ConnectionAggregatedProfile => p !== null,
-      );
-    } catch (err) {
-      console.error(`Failed to load full connections: ${err}`);
-      throw err;
-    }
-  },
-  getIncomingRequests: async (): Promise<number[]> => {
-    const res = await api.get<IdResponseDTO[]>("/connections/requests");
-    return res.data.map((item) => item.id);
-  },
-  connectWithUser: async (targetId: number): Promise<void> => {
-    await api.post(`/connections/${targetId}`);
-  },
-  respondToRequest: async (
-    connectionId: number,
-    accept: boolean,
-  ): Promise<void> => {
-    await api.patch(`/connections/${connectionId}/respond?accept=${accept}`);
-  },
-  disconnectFromUser: async (targetId: number): Promise<void> => {
-    await api.delete(`/connections/${targetId}`);
-  },
-  getMyFullProfile: async (): Promise<PrivateAggregatedProfile> => {
-    const [userRes, profileRes, bioRes] = await Promise.all([
-      api.get<MyPrivateUserDTO>("/me"),
-      api.get<UserProfileDTO>("/me/profile"),
-      api.get<UserBioDTO>("/me/bio"),
-    ]);
-    return {
-      ...userRes.data,
-      ...profileRes.data,
-      ...bioRes.data,
-      preferredDistance:
-        (profileRes.data as PrivateAggregatedProfile)?.preferredDistance ?? 0,
-    };
-  },
-  updateProfile: async (
-    name: string,
-    profile: Partial<UserProfileDTO>,
-    bio: Partial<UserBioDTO>,
-  ): Promise<void> => {
-    await Promise.all([
-      api.patch("/me", { name }),
-      api.patch("/me/profile", profile),
-      api.patch("/me/bio", bio),
-    ]);
-  },
-  uploadProfilePicture: async (
-    file: File,
-  ): Promise<{ profilePictureUrl: string }> => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await api.post("/me/profile-picture", formData);
-    return response.data;
-  },
-  deleteProfilePicture: async (): Promise<void> => {
-    await api.delete("/me/profile-picture");
-  },
-  getOrCreateChat: async (targetUserId: number): Promise<number> => {
-    try {
-      const res = await api.post<{ id: number }>("/chats", {
-        participantId: targetUserId,
-      });
-      return res.data.id;
-    } catch (err) {
-      console.error(`Failed to get or create chat: ${err}`);
-      throw err;
-    }
-  },
-  getUserChats: async (): Promise<ChatSummary[]> => {
-    const res = await api.get<ChatSummary[]>("/chats");
-    return res.data;
-  },
+  getRecommendations: recommendationsApi.getRecommendations,
+  dismissRecommendation: recommendationsApi.dismissRecommendation,
+  getFullRecommendations: recommendationsApi.getFullRecommendations,
+  getConnections: connectionsApi.getConnections,
+  getFullConnections: connectionsApi.getFullConnections,
+  getIncomingRequests: connectionsApi.getIncomingRequests,
+  connectWithUser: connectionsApi.connectWithUser,
+  respondToRequest: connectionsApi.respondToRequest,
+  disconnectFromUser: connectionsApi.disconnectFromUser,
+  getMyFullProfile,
+  updateProfile,
+  uploadProfilePicture,
+  deleteProfilePicture,
+  getOrCreateChat: chatApi.getOrCreateChat,
+  getUserChats: chatApi.getUserChats,
 };
