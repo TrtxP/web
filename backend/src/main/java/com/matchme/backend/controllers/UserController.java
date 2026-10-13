@@ -32,11 +32,7 @@ public class UserController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserBaseInfo(@PathVariable Long id) {
-        User user = userService.getBaseInfo(id);
-        UserResponseDTO userResponseDTO = new UserResponseDTO();
-        userResponseDTO.setId(user.getId());
-        userResponseDTO.setName(user.getName());
-        userResponseDTO.setProfilePictureUrl(user.getProfilePictureUrl());
+        UserResponseDTO userResponseDTO = userService.getUserResponse(id);
         return ResponseEntity.ok(userResponseDTO);
     }
 

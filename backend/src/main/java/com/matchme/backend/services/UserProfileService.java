@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.matchme.backend.dto.UserProfileResponseDTO;
 import com.matchme.backend.models.User;
 import com.matchme.backend.models.UserProfile;
 import com.matchme.backend.repositories.UserProfileRepository;
@@ -27,6 +28,22 @@ public class UserProfileService {
     public UserProfile getProfileInfo(Long id) {
         return userProfileRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    public UserProfileResponseDTO getProfileResponseDTO(Long id) {
+        UserProfile userProfile = getProfileInfo(id);
+        UserProfileResponseDTO userProfileResponseDTO = new UserProfileResponseDTO();
+        userProfileResponseDTO.setAboutMe(userProfile.getAboutMe());
+        userProfileResponseDTO.setCity(userProfile.getCity());
+        userProfileResponseDTO.setAge(userProfile.getAge());
+        userProfileResponseDTO.setGender(userProfile.getGender());
+        userProfileResponseDTO.setLatitude(userProfile.getLatitude());
+        userProfileResponseDTO.setLongitude(userProfile.getLongitude());
+        userProfileResponseDTO.setPreferredDistance(userProfile.getPreferredDistance());
+        userProfileResponseDTO.setRecommendByCityOnly(userProfile.getRecommendByCityOnly());
+        userProfileResponseDTO.setIsOnline(userProfile.getIsOnline());
+        userProfileResponseDTO.setLastSeenAt(userProfile.getLastSeenAt());
+        return userProfileResponseDTO;
     }
 
     public UserProfile createUserProfile(Long userId, UserProfile profile) {

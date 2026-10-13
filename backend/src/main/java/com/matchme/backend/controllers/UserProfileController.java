@@ -29,18 +29,7 @@ public class UserProfileController {
 
     @GetMapping("/{id}/profile")
     public ResponseEntity<?> getUserProfile(@PathVariable Long id) {
-        UserProfile userProfile = userProfileService.getProfileInfo(id);
-        UserProfileResponseDTO userProfileResponseDTO = new UserProfileResponseDTO();
-        userProfileResponseDTO.setAboutMe(userProfile.getAboutMe());
-        userProfileResponseDTO.setCity(userProfile.getCity());
-        userProfileResponseDTO.setAge(userProfile.getAge());
-        userProfileResponseDTO.setGender(userProfile.getGender());
-        userProfileResponseDTO.setLatitude(userProfile.getLatitude());
-        userProfileResponseDTO.setLongitude(userProfile.getLongitude());
-        userProfileResponseDTO.setPreferredDistance(userProfile.getPreferredDistance());
-        userProfileResponseDTO.setRecommendByCityOnly(userProfile.getRecommendByCityOnly());
-        userProfileResponseDTO.setIsOnline(userProfile.getIsOnline());
-        userProfileResponseDTO.setLastSeenAt(userProfile.getLastSeenAt());
+        UserProfileResponseDTO userProfileResponseDTO = userProfileService.getProfileResponseDTO(id);
         return ResponseEntity.status(HttpStatus.OK).body(userProfileResponseDTO);
     }
 

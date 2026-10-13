@@ -7,7 +7,6 @@ import type {
   ChatMessageDTO,
   ChatSummary,
   TypingIndicatorDTO,
-  UserProfileStatusUpdate,
 } from "../types";
 import { useSearchParams } from "react-router-dom";
 
@@ -17,7 +16,10 @@ export const Chat: React.FC = () => {
   const [activeChatId, setActiveChatId] = useState<number | null>(null);
   const [partnerName, setPartnerName] = useState<string | null>(null);
   const [partnerTyping, setPartnerTyping] = useState(false);
-  const [isPartnerOnline, setIsPartnerOnline] = useState<boolean>(false);
+  const [partnerOnlineState, setPartnerOnlineState] = useState<{
+    userId: number;
+    isOnline: boolean;
+  } | null>(null);
   const [chatUnavailableMessage, setChatUnavailableMessage] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -36,6 +38,11 @@ export const Chat: React.FC = () => {
 
   const activePartner = chats.find((chat) => chat.id === activeChatId);
   const activePartnerId = activePartner?.partnerId ?? targetUserId;
+
+  const isPartnerOnline =
+    activePartnerId !== null && partnerOnlineState?.userId === activePartnerId
+      ? partnerOnlineState.isOnline
+      : false;
 
   const fetchMessages = useCallback(
     async (pageNum: number, isInitial = false) => {
@@ -183,6 +190,34 @@ export const Chat: React.FC = () => {
     fetchUserChats();
   }, []);
 
+  // Вспомогательная функция для получения актуального статуса пользователя
+  const fetchPartnerOnlineStatus = useCallback(async (userId: number) => {
+    try {
+      // Пробуем получить статус из /profile (так как UserProfileService обновляет его там)
+      const profileRes = await api.get<{ isOnline?: boolean; online?: boolean }>(
+        `/users/${userId}/profile`
+      );
+      const status = profileRes.data.isOnline ?? profileRes.data.online;
+      if (typeof status === "boolean") {
+        setPartnerOnlineState({ userId, isOnline: status });
+        return;
+      }
+    } catch {
+      // Fallback на /users/{id}, если /profile недоступен
+    }
+
+    try {
+      const userRes = await api.get<{ isOnline?: boolean; online?: boolean }>(
+        `/users/${userId}`
+      );
+      const status = userRes.data.isOnline ?? userRes.data.online;
+      setPartnerOnlineState({ userId, isOnline: Boolean(status) });
+    } catch (err) {
+      console.error(`Failed to fetch partner status: ${err}`);
+      setPartnerOnlineState({ userId, isOnline: false });
+    }
+  }, []);
+
   useEffect(() => {
     if (!targetUserId) return;
 
@@ -196,12 +231,11 @@ export const Chat: React.FC = () => {
           id: number;
           name: string;
           isOnline?: boolean;
+          online?: boolean;
         }>(`/users/${targetUserId}`);
 
         setPartnerName(partnerRes.data.name);
-        if (typeof partnerRes.data.isOnline !== "undefined") {
-          setIsPartnerOnline(partnerRes.data.isOnline);
-        }
+        await fetchPartnerOnlineStatus(targetUserId);
       } catch (err) {
         console.error(
           `Failed to initialize chat for user ${targetUserId}: ${err}`,
@@ -210,20 +244,28 @@ export const Chat: React.FC = () => {
     };
 
     loadChat();
-  }, [targetUserId]);
+  }, [targetUserId, fetchPartnerOnlineStatus]);
 
   useEffect(() => {
     if (!activePartnerId) return;
 
-    api
-      .get<{ isOnline?: boolean }>(`/users/${activePartnerId}`)
-      .then((res) => {
-        if (typeof res.data.isOnline !== "undefined") {
-          setIsPartnerOnline(res.data.isOnline);
-        }
-      })
-      .catch((err) => console.error(`Failed to fetch partner status: ${err}`));
-  }, [activePartnerId]);
+    let ignore = false;
+
+    const fetchStatus = async () => {
+      try {
+        await fetchPartnerOnlineStatus(activePartnerId);
+        if (ignore) return;
+      } catch {
+        // handled in fetchPartnerOnlineStatus
+      }
+    };
+
+    fetchStatus();
+
+    return () => {
+      ignore = true;
+    };
+  }, [activePartnerId, fetchPartnerOnlineStatus]);
 
   useEffect(() => {
     if (!activePartnerId) return;
@@ -236,14 +278,11 @@ export const Chat: React.FC = () => {
           status: string;
         };
 
-        const update: UserProfileStatusUpdate = {
-          userId: serverData.userId,
-          isOnline: serverData.status === "ONLINE",
-          lastSeenAt: new Date().toISOString(),
-        };
-
-        if (update.userId === activePartnerId) {
-          setIsPartnerOnline(update.isOnline);
+        if (Number(serverData.userId) === Number(activePartnerId)) {
+          setPartnerOnlineState({
+            userId: Number(serverData.userId),
+            isOnline: serverData.status === "ONLINE",
+          });
         }
       },
     );
@@ -564,9 +603,11 @@ export const Chat: React.FC = () => {
                     : "Conversation Window"}
                 </span>
                 <span
-                  className={`text-xs font-semibold ${isPartnerOnline || partnerTyping ? "text-green-600" : "text-gray-400"}`}
+                  className={`text-xs font-semibold ${
+                    isPartnerOnline ? "text-green-600" : "text-gray-400"
+                  }`}
                 >
-                  {isPartnerOnline || partnerTyping ? "● online" : "last seen recently"}
+                  {isPartnerOnline ? "Online" : "Offline"}
                 </span>
               </div>
 

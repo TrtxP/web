@@ -3,24 +3,67 @@ import {
   type FullProfileModalProps,
   type UserProfileStatusUpdate,
 } from "../types";
+import { api } from "../services/matchService";
 import { websocketService } from "../services/websocket";
-import { getAvatarUrl } from '../utils/avatar';
+import { getAvatarUrl } from "../utils/avatar";
 
 export const FullProfileModal: React.FC<FullProfileModalProps> = ({
   profile: initialProfile,
   onClose,
 }) => {
+  const profile = initialProfile;
+  const initialOnline =
+    initialProfile.isOnline ??
+    (initialProfile as { online?: boolean }).online ??
+    false;
+
   const [statusOverride, setStatusOverride] =
     useState<UserProfileStatusUpdate | null>(null);
 
-  const profile = {
-    ...initialProfile,
-    isOnline:
-      statusOverride?.userId === initialProfile.id
-        ? statusOverride.isOnline
-        : initialProfile.isOnline,
-  };
+  const isOnline =
+    statusOverride?.userId === initialProfile.id
+      ? statusOverride.isOnline
+      : Boolean(initialOnline);
 
+  // 1. При открытии модалки сразу запрашиваем актуальный статус пользователя
+  useEffect(() => {
+    if (!initialProfile?.id) return;
+
+    api
+      .get<{ isOnline?: boolean; online?: boolean }>(
+        `/users/${initialProfile.id}/profile`
+      )
+      .then((res) => {
+        const currentStatus = res.data.isOnline ?? res.data.online;
+        if (typeof currentStatus === "boolean") {
+          setStatusOverride({
+            userId: initialProfile.id,
+            isOnline: currentStatus,
+            lastSeenAt: initialProfile.lastSeenAt || "",
+          });
+        }
+      })
+      .catch(() => {
+        // Fallback на /users/{id}
+        api
+          .get<{ isOnline?: boolean; online?: boolean }>(
+            `/users/${initialProfile.id}`
+          )
+          .then((res) => {
+            const currentStatus = res.data.isOnline ?? res.data.online;
+            if (typeof currentStatus === "boolean") {
+              setStatusOverride({
+                userId: initialProfile.id,
+                isOnline: currentStatus,
+                lastSeenAt: initialProfile.lastSeenAt || "",
+              });
+            }
+          })
+          .catch(console.error);
+      });
+  }, [initialProfile?.id, initialProfile?.lastSeenAt]);
+
+  // 2. Слушаем изменения статуса в реальном времени без перезагрузки
   useEffect(() => {
     if (!initialProfile?.id) return;
 
@@ -29,9 +72,12 @@ export const FullProfileModal: React.FC<FullProfileModalProps> = ({
       (data: unknown) => {
         const serverData = data as { userId: number; status: string };
 
-        if (serverData && serverData.userId === initialProfile.id) {
+        if (
+          serverData &&
+          Number(serverData.userId) === Number(initialProfile.id)
+        ) {
           setStatusOverride({
-            userId: serverData.userId,
+            userId: Number(serverData.userId),
             isOnline: serverData.status === "ONLINE",
             lastSeenAt:
               serverData.status === "OFFLINE"
@@ -89,12 +135,12 @@ export const FullProfileModal: React.FC<FullProfileModalProps> = ({
 
           <span
             className={`${
-              profile.isOnline
+              isOnline
                 ? "inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 inset-ring inset-ring-green-600/20"
                 : "inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 inset-ring inset-ring-yellow-600/20"
             }`}
           >
-            {profile.isOnline ? "Active Now" : "Offline"}
+            {isOnline ? "Online" : "Offline"}
           </span>
         </div>
 

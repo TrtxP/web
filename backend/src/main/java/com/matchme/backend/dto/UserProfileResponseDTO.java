@@ -2,6 +2,8 @@ package com.matchme.backend.dto;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.Data;
 
 @Data
@@ -14,6 +16,18 @@ public class UserProfileResponseDTO {
     private Double longitude;
     private Integer preferredDistance;
     private Boolean recommendByCityOnly;
-    private Boolean isOnline;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("isOnline")
+    private boolean isOnline;
+
     private LocalDateTime lastSeenAt;
+
+    public void setIsOnline(Boolean isOnline) {
+        this.isOnline = Boolean.TRUE.equals(isOnline);
+    }
+
+    @JsonProperty("isOnline")
+    public boolean isOnline() {
+        return isOnline;
+    }
 }

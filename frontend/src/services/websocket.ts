@@ -30,7 +30,7 @@ class WebSocketService {
     });
 
     this.client.onConnect = () => {
-      console.log(`STOMP Connected cuccessfully`);
+      console.log(`STOMP Connected successfully`);
 
       this.stompSubscriptions.clear();
 
@@ -59,11 +59,14 @@ class WebSocketService {
     }
 
     return () => {
-      this.listeners.get(destination)?.delete(callback);
-      if (this.listeners.get(destination)?.size === 0) {
-        this.stompSubscriptions.get(destination)?.unsubscribe();
-        this.stompSubscriptions.delete(destination);
-        this.listeners.delete(destination);
+      const callbacks = this.listeners.get(destination);
+      if (callbacks) {
+        callbacks.delete(callback);
+        if (callbacks.size === 0) {
+          this.stompSubscriptions.get(destination)?.unsubscribe();
+          this.stompSubscriptions.delete(destination);
+          this.listeners.delete(destination);
+        }
       }
     };
   }
@@ -74,7 +77,16 @@ class WebSocketService {
     const sub = this.client.subscribe(destination, (message) => {
       try {
         const payload = JSON.parse(message.body);
-        this.listeners.get(destination)?.forEach((cb) => cb(payload));
+        const callbacks = this.listeners.get(destination);
+        if (callbacks) {
+          callbacks.forEach((cb) => {
+            try {
+              cb(payload);
+            } catch (err) {
+              console.error(`Error in STOMP listener callback for ${destination}:`, err);
+            }
+          });
+        }
       } catch (err) {
         console.error(`Error parsing STOMP body: ${err}`);
       }

@@ -7,23 +7,46 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.matchme.backend.dto.UserResponseDTO;
 import com.matchme.backend.models.*;
 import com.matchme.backend.repositories.*;
 
 @Service
 public class UserService {
     private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
     private final PasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository, 
+            UserProfileRepository userProfileRepository,
             PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.userProfileRepository = userProfileRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
     public User getBaseInfo(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    public UserResponseDTO getUserResponse(Long id) {
+        User user = getBaseInfo(id);
+        UserResponseDTO userResponseDTO = new UserResponseDTO();
+        userResponseDTO.setId(user.getId());
+        userResponseDTO.setName(user.getName());
+        userResponseDTO.setProfilePictureUrl(user.getProfilePictureUrl());
+
+        boolean online = false;
+        if (user.getUserProfile() != null && user.getUserProfile().getIsOnline() != null) {
+            online = user.getUserProfile().getIsOnline();
+        } else {
+            online = userProfileRepository.findById(id)
+                    .map(up -> Boolean.TRUE.equals(up.getIsOnline()))
+                    .orElse(false);
+        }
+        userResponseDTO.setIsOnline(online);
+        return userResponseDTO;
     }
 
     public User createUser(User user) {
