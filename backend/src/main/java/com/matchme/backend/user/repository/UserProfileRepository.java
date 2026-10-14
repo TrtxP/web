@@ -1,0 +1,26 @@
+package com.matchme.backend.user.repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.matchme.backend.user.model.UserProfile;
+
+public interface UserProfileRepository extends JpaRepository<UserProfile, Long> {
+
+    @Query("SELECT p FROM UserProfile p WHERE p.user.id <> :currentUserId")
+    List<UserProfile> findRecommendationsForUser(@Param("currentUserId") Long currentUserId);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE UserProfile up SET up.isOnline = :isOnline WHERE up.user.id = :userId")
+    void updateOnlineStatus(@Param("userId") Long userId, @Param("isOnline") boolean isOnline);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE UserProfile up SET up.lastSeenAt = :lastSeenAt WHERE up.user.id = :userId")
+    void updateLastSeenTime(@Param("userId") Long userId, @Param("lastSeenAt") LocalDateTime lastSeenAt);
+}
+
