@@ -9,6 +9,7 @@ import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -74,12 +76,15 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Дозволяємо попередні запити OPTIONS
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Browser WebSocket handshake has no Authorization header.
+                        // connection_init and every GraphQL operation are authenticated by the interceptor.
+                        .requestMatchers(HttpMethod.GET, "/graphql/ws").permitAll()
                         // Реєстрація та вхід
                         .requestMatchers(HttpMethod.POST, "/users").permitAll()
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/error").permitAll()
-                        .requestMatchers("/users/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/users/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         // Захищені ресурси
                         .requestMatchers("/me", "/me/**", "/recommendations", "/recommendations/**",

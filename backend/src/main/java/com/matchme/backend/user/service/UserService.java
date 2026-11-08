@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -60,6 +61,7 @@ public class UserService {
     }
 
     @Transactional
+    @PreAuthorize("#id == authentication.principal")
     public User updateUserFull(Long id, User newUser) {
         Optional<User> optionalUser = userRepository.findById(id);
 
@@ -70,7 +72,7 @@ public class UserService {
         User existingUser = optionalUser.get();
 
         existingUser.setEmail(newUser.getEmail());
-        existingUser.setPassword(newUser.getPassword());
+        existingUser.setPassword(encodePassword(newUser.getPassword()));
         existingUser.setName(newUser.getName());
         existingUser.setProfilePictureUrl(newUser.getProfilePictureUrl());
 
@@ -78,6 +80,7 @@ public class UserService {
     }
 
     @Transactional
+    @PreAuthorize("#id == authentication.principal")
     public User updateUserPartial(Long id, User updatedFields) {
         Optional<User> optionalUser = userRepository.findById(id);
 
@@ -92,7 +95,7 @@ public class UserService {
         }
 
         if (updatedFields.getPassword() != null) {
-            existingUser.setPassword(updatedFields.getPassword());
+            existingUser.setPassword(encodePassword(updatedFields.getPassword()));
         }
 
         if (updatedFields.getName() != null) {
@@ -107,12 +110,22 @@ public class UserService {
     }
 
     @Transactional
+    @PreAuthorize("#id == authentication.principal")
     public void deleteUser(Long id) {
         if (userRepository.findById(id).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
 
         userRepository.deleteById(id);
+    }
+
+    private String encodePassword(String password) {
+        if (password == null || password.length() < 8 || password.length() > 64
+                || !password.matches("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!_]).*$")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Password must contain 8 to 64 characters, upper and lower case letters, a digit and a special character");
+        }
+        return passwordEncoder.encode(password);
     }
 }
 

@@ -1,5 +1,7 @@
 package com.matchme.backend.user.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,6 +43,7 @@ public class User {
     @NotBlank(message = "Password mustn't be empty!")
     @Size(min = 8, max = 64, message = "Password must be in range from 8 to 64 characters!")
     @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!_]).*$", message = "Password is too weak (must be letters in different registers, numbers and special characters")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     @NotBlank(message = "Name mustn't be empty!")

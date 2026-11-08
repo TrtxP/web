@@ -7,6 +7,7 @@ import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -42,6 +43,7 @@ public class UserProfileService {
     }
 
     @Transactional
+    @PreAuthorize("#userId == authentication.principal")
     public UserProfile createUserProfile(Long userId, UserProfile profile) {
         Optional<User> optionalUser = userRepository.findById(userId);
 
@@ -63,6 +65,7 @@ public class UserProfileService {
     }
 
     @Transactional
+    @PreAuthorize("#userId == authentication.principal")
     public UserProfile updateProfileFull(Long userId, UserProfile newProfile) {
         Optional<UserProfile> optionalUser = userProfileRepository.findById(userId);
 
@@ -85,6 +88,7 @@ public class UserProfileService {
     }
 
     @Transactional
+    @PreAuthorize("#userId == authentication.principal")
     public UserProfile updateProfilePartial(Long userId, UserProfile updatedFields) {
         Optional<UserProfile> optionalUser = userProfileRepository.findById(userId);
 
@@ -138,6 +142,7 @@ public class UserProfileService {
     }
 
     @Transactional
+    @PreAuthorize("#userId == authentication.principal")
     public void deleteProfile(Long userId) {
         if (userProfileRepository.findById(userId).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);

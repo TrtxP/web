@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -29,6 +30,7 @@ public class UserBioService {
     }
 
     @Transactional
+    @PreAuthorize("#userId == authentication.principal")
     public UserBio createUserBio(Long userId, UserBio userBio) {
         Optional<User> optionalUser = userRepository.findById(userId);
 
@@ -43,6 +45,7 @@ public class UserBioService {
     }
 
     @Transactional
+    @PreAuthorize("#userId == authentication.principal")
     public UserBio updateBioFull(Long userId, UserBio newBio) {
         Optional<UserBio> optionalBio = userBioRepository.findById(userId);
 
@@ -68,6 +71,7 @@ public class UserBioService {
      * розрізнити "поле не передане" (null) від "явно встановлено false".
      */
     @Transactional
+    @PreAuthorize("#userId == authentication.principal")
     public UserBio updateBioPartial(Long userId, UserBioPatchDTO updatedFields) {
         Optional<UserBio> optionalBio = userBioRepository.findById(userId);
 
@@ -101,6 +105,7 @@ public class UserBioService {
     }
 
     @Transactional
+    @PreAuthorize("#userId == authentication.principal")
     public void deleteBio(Long userId) {
         if (userBioRepository.findById(userId).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
