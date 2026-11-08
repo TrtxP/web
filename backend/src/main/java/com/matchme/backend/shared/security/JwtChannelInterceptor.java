@@ -2,6 +2,8 @@ package com.matchme.backend.shared.security;
 
 import java.security.Principal;
 import java.util.Optional;
+import java.util.regex.Pattern;
+import com.matchme.backend.chat.service.ChatAccessService;
 
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -17,9 +19,12 @@ import jakarta.annotation.Nonnull;
 public class JwtChannelInterceptor implements ChannelInterceptor {
 
     private final JwtService jwtService;
+    private final ChatAccessService chatAccessService;
+    private static final Pattern CHAT_TOPIC = Pattern.compile("/topic/chat\\.(\\d+)(?:\\.(?:read|typing))?");
 
-    public JwtChannelInterceptor(JwtService jwtService) {
+    public JwtChannelInterceptor(JwtService jwtService, ChatAccessService chatAccessService) {
         this.jwtService = jwtService;
+        this.chatAccessService = chatAccessService;
     }
 
     @Override
@@ -44,6 +49,25 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             accessor.setUser(principal);
         }
 
+        if (accessor != null && (StompCommand.SUBSCRIBE.equals(accessor.getCommand())
+                || StompCommand.SEND.equals(accessor.getCommand()))) {
+            Principal user = accessor.getUser();
+            if (user == null) {
+                throw new IllegalArgumentException("Authenticated WebSocket session required");
+            }
+            String destination = accessor.getDestination();
+            if (StompCommand.SEND.equals(accessor.getCommand())
+                    && (destination == null || !destination.startsWith("/app/"))) {
+                throw new IllegalArgumentException("Messages must be sent through application handlers");
+            }
+            if (destination != null && destination.startsWith("/topic/chat.")) {
+                var matcher = CHAT_TOPIC.matcher(destination);
+                if (!matcher.matches()) {
+                    throw new IllegalArgumentException("Invalid chat destination");
+                }
+                chatAccessService.requireParticipant(Long.parseLong(matcher.group(1)), Long.parseLong(user.getName()));
+            }
+        }
         return message;
     }
 

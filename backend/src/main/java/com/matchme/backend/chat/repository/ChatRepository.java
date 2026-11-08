@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.matchme.backend.chat.model.Chat;
+import com.matchme.backend.chat.dto.ChatSummaryDTO;
 
 public interface ChatRepository extends JpaRepository<Chat, Long> {
 
@@ -20,6 +21,16 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
     @Query("SELECT c FROM Chat c WHERE c.userOne.id = :userId OR c.userTwo.id = :userId " +
             "ORDER BY c.lastMessageAt DESC NULLS LAST")
     List<Chat> findAllForUserOrderByLastMessageDesc(@Param("userId") Long userId);
+
+    @Query("""
+            SELECT new com.matchme.backend.chat.dto.ChatSummaryDTO(c.id,
+                CASE WHEN c.userOne.id = :userId THEN c.userTwo.id ELSE c.userOne.id END,
+                CASE WHEN c.userOne.id = :userId THEN c.userTwo.name ELSE c.userOne.name END,
+                c.lastMessageAt)
+            FROM Chat c WHERE c.userOne.id = :userId OR c.userTwo.id = :userId
+            ORDER BY c.lastMessageAt DESC NULLS LAST, c.id DESC
+            """)
+    List<ChatSummaryDTO> findSummariesForUser(@Param("userId") Long userId);
 
     @Modifying
     @Query("DELETE FROM ChatMessage m WHERE m.chat.id = :chatId")

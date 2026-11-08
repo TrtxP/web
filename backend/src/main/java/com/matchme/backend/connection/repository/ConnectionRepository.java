@@ -12,6 +12,12 @@ import com.matchme.backend.connection.model.ConnectionStatus;
 
 public interface ConnectionRepository extends JpaRepository<Connection, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM Connection c WHERE " +
+            "(c.requester.id = :userIdA AND c.receiver.id = :userIdB) OR " +
+            "(c.requester.id = :userIdB AND c.receiver.id = :userIdA)")
+    Optional<Connection> findBetweenUsersForUpdate(@Param("userIdA") Long userIdA, @Param("userIdB") Long userIdB);
+
     // Знайти будь-який запис між двома користувачами (в будь-якому напрямку)
     @Query("SELECT c FROM Connection c WHERE " +
             "(c.requester.id = :userIdA AND c.receiver.id = :userIdB) OR " +

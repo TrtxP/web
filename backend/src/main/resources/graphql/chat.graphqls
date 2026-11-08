@@ -1,0 +1,69 @@
+type Query {
+    chats: [ChatSummary!]!
+    chatMessages(chatId: ID!, page: Int! = 0, size: Int! = 30): ChatMessagePage!
+}
+
+type Mutation {
+    openChat(participantId: ID!): ID!
+    sendMessage(input: SendMessageInput!): ChatMessage!
+    markChatRead(chatId: ID!): Boolean!
+    setChatTyping(chatId: ID!, typing: Boolean!): Boolean!
+}
+
+type Subscription {
+    "Events for the authenticated user; optionally restricted to one of their chats."
+    chatEvents(chatId: ID): ChatEvent!
+}
+
+input SendMessageInput {
+    chatId: ID!
+    content: String!
+}
+
+type ChatSummary {
+    id: ID!
+    partnerId: ID!
+    partnerName: String!
+    "ISO-8601 local server time, matching the existing REST API."
+    lastMessageAt: String
+}
+
+type ChatMessage {
+    id: ID!
+    chatId: ID!
+    senderId: ID!
+    receiverId: ID!
+    content: String!
+    sentAt: String!
+    read: Boolean!
+}
+
+type ChatMessagePage {
+    content: [ChatMessage!]!
+    number: Int!
+    size: Int!
+    totalPages: Int!
+    totalElements: Float!
+    last: Boolean!
+}
+
+enum ChatEventKind { MESSAGE READ TYPING }
+
+type ChatEvent {
+    kind: ChatEventKind!
+    chatId: ID!
+    message: ChatMessage
+    receipt: ChatReadReceipt
+    typing: TypingIndicator
+}
+
+type ChatReadReceipt {
+    chatId: ID!
+    readerId: ID!
+}
+
+type TypingIndicator {
+    chatId: ID!
+    userId: ID!
+    typing: Boolean!
+}

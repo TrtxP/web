@@ -61,14 +61,27 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
             >
               {m.content}
             </div>
-            <span className="text-[10px] text-gray-400 mt-1 font-mono">
-              {new Date(m.sentAt).toLocaleTimeString([], {
-                day: "numeric",
-                month: "short",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-[10px] text-gray-400 font-mono">
+                {new Date(m.sentAt).toLocaleTimeString([], {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+              {isMine && (
+                <span
+                  className={`text-[10px] text-gray-400/80 font-medium transition-all duration-500 ease-out inline-block ${
+                    m.read
+                      ? "opacity-100 translate-y-0"
+                      : "opacity-0 -translate-y-0.5 pointer-events-none select-none"
+                  }`}
+                >
+                  read
+                </span>
+              )}
+            </div>
           </div>
         );
       })}
@@ -76,4 +89,3 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
     </div>
   );
 };
-

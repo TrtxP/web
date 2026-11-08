@@ -17,6 +17,8 @@ export const ChatPage: React.FC = () => {
 
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [inputValue, setInputValue] = useState("");
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -51,7 +53,9 @@ export const ChatPage: React.FC = () => {
     scrollContainerRef,
     handleScroll,
     isLoadingMore,
-  } = useActiveChatMessages(activeChatId, handleIncomingMessage);
+    acceptMessage,
+    error: messagesError,
+  } = useActiveChatMessages(activeChatId, currentUserId);
 
   const { partnerTyping, handleTyping, resetTyping } = useChatTyping(
     activeChatId,
@@ -65,10 +69,14 @@ export const ChatPage: React.FC = () => {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim() || !activeChatId) return;
+    if (!inputValue.trim() || !activeChatId || isSending) return;
 
+    setIsSending(true);
+    setSendError(null);
     try {
-      chatApi.sendChatMessage(activeChatId, inputValue.trim());
+      const message = await chatApi.sendChatMessage(activeChatId, inputValue.trim());
+      acceptMessage(message);
+      handleIncomingMessage(message);
       setInputValue("");
       resetTyping();
       setTimeout(
@@ -76,7 +84,9 @@ export const ChatPage: React.FC = () => {
         50,
       );
     } catch (err) {
-      console.error(`Failed to send message: ${err}`);
+      setSendError(err instanceof Error ? err.message : "Failed to send message. Please try again.");
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -109,10 +119,14 @@ export const ChatPage: React.FC = () => {
             />
 
             <ChatMessageInput
+              disabled={isSending}
               inputValue={inputValue}
               onInputChange={handleInputChange}
               onSendMessage={handleSendMessage}
             />
+            {(sendError || messagesError) && (
+              <p role="alert" className="px-4 py-2 text-sm text-red-600">{sendError || messagesError}</p>
+            )}
           </>
         ) : (
           <div className="m-auto text-gray-400 font-medium text-sm">
@@ -126,4 +140,3 @@ export const ChatPage: React.FC = () => {
 };
 
 export default ChatPage;
-

@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test": "tsc -p tsconfig.test.json && node --test src/features/chat/api/chatMapping.test.ts src/shared/api/graphqlClient.test.ts",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
@@ -12,6 +13,8 @@
   "dependencies": {
     "@stomp/stompjs": "^7.3.0",
     "axios": "^1.18.1",
+    "graphql": "^17.1.0",
+    "graphql-ws": "^6.4.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",

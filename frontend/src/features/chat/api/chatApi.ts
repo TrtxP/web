@@ -1,48 +1,53 @@
-import { api } from "../../../shared/api/httpClient.ts";
-import { websocketService } from "../../../shared/ws/websocketService.ts";
+import { graphqlRequest } from "../../../shared/api/graphqlClient.ts";
+import { messageFields } from "./chatDocuments.ts";
+import { mapMessage, mapSummary, type WireMessage } from "./chatMapping.ts";
 import type { ChatMessage, ChatSummary } from "../model/types.ts";
 
 export const chatApi = {
   getOrCreateChat: async (targetUserId: number): Promise<number> => {
-    try {
-      const res = await api.post<{ id: number }>("/chats", {
-        participantId: targetUserId,
-      });
-      return res.data.id;
-    } catch (err) {
-      console.error(`Failed to get or create chat: ${err}`);
-      throw err;
-    }
+    const data = await graphqlRequest<{ openChat: string }>(
+      "mutation OpenChat($participantId: ID!) { openChat(participantId: $participantId) }",
+      { participantId: targetUserId },
+    );
+    return Number(data.openChat);
   },
 
   getUserChats: async (): Promise<ChatSummary[]> => {
-    const res = await api.get<ChatSummary[]>("/chats");
-    return res.data;
+    const data = await graphqlRequest<{ chats: Parameters<typeof mapSummary>[0][] }>(
+      "query Chats { chats { id partnerId partnerName lastMessageAt } }",
+    );
+    return data.chats.map(mapSummary);
   },
 
   getChatMessages: async (
     chatId: number,
     page = 0,
     size = 30,
-  ): Promise<{ content: ChatMessage[]; last: boolean } | ChatMessage[]> => {
-    const res = await api.get<
-      { content: ChatMessage[]; last: boolean } | ChatMessage[]
-    >(`/chats/${chatId}/messages?page=${page}&size=${size}`);
-    return res.data;
+  ): Promise<{ content: ChatMessage[]; last: boolean }> => {
+    const data = await graphqlRequest<{ chatMessages: { content: WireMessage[]; last: boolean } }>(
+      `query ChatMessages($chatId: ID!, $page: Int!, $size: Int!) {
+        chatMessages(chatId: $chatId, page: $page, size: $size) {
+          content { ${messageFields} } last
+        }
+      }`, { chatId, page, size },
+    );
+    return { ...data.chatMessages, content: data.chatMessages.content.map(mapMessage) };
   },
 
-  sendChatMessage: (chatId: number, content: string): void => {
-    websocketService.send("/app/chat.send", {
-      chatId,
-      content,
-    });
+  sendChatMessage: async (chatId: number, content: string): Promise<ChatMessage> => {
+    const data = await graphqlRequest<{ sendMessage: WireMessage }>(
+      `mutation SendMessage($input: SendMessageInput!) { sendMessage(input: $input) { ${messageFields} } }`,
+      { input: { chatId, content } },
+    );
+    return mapMessage(data.sendMessage);
   },
 
-  sendChatTyping: (chatId: number, typing: boolean): void => {
-    websocketService.send("/app/chat.typing", {
-      chatId,
-      typing,
-    });
+  sendChatTyping: async (chatId: number, typing: boolean): Promise<void> => {
+    await graphqlRequest("mutation SetChatTyping($chatId: ID!, $typing: Boolean!) { setChatTyping(chatId: $chatId, typing: $typing) }",
+      { chatId, typing });
+  },
+
+  markChatAsRead: async (chatId: number): Promise<void> => {
+    await graphqlRequest("mutation MarkChatRead($chatId: ID!) { markChatRead(chatId: $chatId) }", { chatId });
   },
 };
-

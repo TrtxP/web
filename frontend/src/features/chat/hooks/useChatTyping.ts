@@ -1,44 +1,46 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { chatApi } from "../api/chatApi.ts";
-import { useStompSubscription } from "../../../shared/ws/useStompSubscription.ts";
-import type { TypingIndicatorDTO } from "../model/types.ts";
+import { useChatEvents } from "./useChatEvents.ts";
+import type { ChatEvent } from "../model/types.ts";
 
 export function useChatTyping(
   activeChatId: number | null,
   currentUserId: number | null,
 ) {
-  const [partnerTyping, setPartnerTyping] = useState(false);
+  const [typingState, setTypingState] = useState<{ chatId: number; typing: boolean } | null>(null);
+  const partnerTyping = typingState?.chatId === activeChatId && typingState.typing;
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const partnerTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleTypingEvent = useCallback(
-    (rawPayload: unknown) => {
-      const status = rawPayload as TypingIndicatorDTO;
-
-      if (status.userId !== currentUserId) {
-        setPartnerTyping(Boolean(status?.typing));
+    (event: ChatEvent) => {
+      if (event.typing && event.typing.userId !== currentUserId) {
+        setTypingState({ chatId: event.chatId, typing: event.typing.typing });
+        if (partnerTimeout.current) clearTimeout(partnerTimeout.current);
+        partnerTimeout.current = setTimeout(() => setTypingState(null), 3000);
       }
     },
     [currentUserId],
   );
 
-  useStompSubscription(
-    activeChatId ? `/topic/chat.${activeChatId}.typing` : null,
+  useChatEvents(
+    activeChatId,
     handleTypingEvent,
-    Boolean(activeChatId),
+    Boolean(activeChatId && currentUserId),
   );
 
   const handleTyping = useCallback(
     (text: string) => {
       if (!activeChatId) return;
 
-      chatApi.sendChatTyping(activeChatId, text.length > 0);
+      void chatApi.sendChatTyping(activeChatId, text.length > 0).catch(console.error);
 
       if (typingTimeout.current) {
         clearTimeout(typingTimeout.current);
       }
 
       typingTimeout.current = setTimeout(() => {
-        chatApi.sendChatTyping(activeChatId, false);
+        void chatApi.sendChatTyping(activeChatId, false).catch(console.error);
       }, 1500);
     },
     [activeChatId],
@@ -49,21 +51,21 @@ export function useChatTyping(
       clearTimeout(typingTimeout.current);
     }
     if (activeChatId) {
-      chatApi.sendChatTyping(activeChatId, false);
+      void chatApi.sendChatTyping(activeChatId, false).catch(console.error);
     }
   }, [activeChatId]);
 
   useEffect(() => {
     return () => {
+      if (partnerTimeout.current) clearTimeout(partnerTimeout.current);
       if (typingTimeout.current) {
         clearTimeout(typingTimeout.current);
       }
     };
-  }, []);
+  }, [activeChatId]);
 
   return {
     partnerTyping,
-    setPartnerTyping,
     handleTyping,
     resetTyping,
   };

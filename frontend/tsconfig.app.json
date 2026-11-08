@@ -22,5 +22,6 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "tailwind.config.js"]
+  "include": ["src", "tailwind.config.js"],
+  "exclude": ["src/**/*.test.ts"]
 }

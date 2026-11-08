@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.matchme.backend.chat.dto.ChatRequestDTO;
 import com.matchme.backend.chat.dto.ChatSummaryDTO;
 import com.matchme.backend.chat.model.Chat;
-import com.matchme.backend.chat.model.ChatMessage;
+import com.matchme.backend.chat.dto.ChatMessageDTO;
 import com.matchme.backend.chat.service.ChatService;
 import com.matchme.backend.shared.security.CurrentUserProvider;
 
@@ -40,10 +40,10 @@ public class ChatController {
     }
 
     @GetMapping("/{chatId}/messages")
-    public ResponseEntity<Page<ChatMessage>> getMessages(
+    public ResponseEntity<Page<ChatMessageDTO>> getMessages(
             @PathVariable Long chatId,
             Pageable pageable) {
-        Page<ChatMessage> messages = chatService.getMessages(chatId, pageable);
+        Page<ChatMessageDTO> messages = chatService.getMessages(chatId, currentUserProvider.getCurrentUserId(), pageable);
         return ResponseEntity.ok(messages);
     }
 

@@ -8,6 +8,7 @@ export interface ChatMessage {
   };
   content: string;
   sentAt: string | Date;
+  read?: boolean;
 }
 
 export interface ChatMessageDTO {
@@ -16,6 +17,12 @@ export interface ChatMessageDTO {
   senderId: number;
   content: string;
   sentAt: string;
+  read?: boolean;
+}
+
+export interface ChatReadReceiptDTO {
+  chatId: number;
+  readerId: number;
 }
 
 export interface ChatSummary {
@@ -39,3 +46,10 @@ export interface UserSummary {
   online?: boolean;
 }
 
+export interface ChatEvent {
+  kind: "MESSAGE" | "READ" | "TYPING";
+  chatId: number;
+  message: ChatMessage | null;
+  receipt: ChatReadReceiptDTO | null;
+  typing: TypingIndicatorDTO | null;
+}

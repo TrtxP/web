@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { disconnectGraphql } from "../api/graphqlClient.ts";
+import { websocketService } from "../ws/websocketService.ts";
 
 import type { PrivateAggregatedProfile } from "../../entities/user/model/types.ts";
 
@@ -15,6 +17,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
+    disconnectGraphql();
+    websocketService.disconnect();
     localStorage.removeItem("token");
     setMobileOpen(false);
     navigate("/login");

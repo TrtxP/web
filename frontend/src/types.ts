@@ -42,6 +42,7 @@ export type {
 export type {
   ChatMessage,
   ChatMessageDTO,
+  ChatReadReceiptDTO,
   ChatSummary,
   TypingIndicatorDTO,
   UserSummary,

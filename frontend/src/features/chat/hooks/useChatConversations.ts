@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useChatEvents } from "./useChatEvents.ts";
 import { api } from "../../../shared/api/httpClient.ts";
 import { fetchUserOnlineStatusWithFallback } from "../../../entities/user/api/userApi.ts";
 import { chatApi } from "../api/chatApi.ts";
@@ -15,6 +16,7 @@ export function useChatConversations(
   targetUserId: number | null,
 ) {
   const [chats, setChats] = useState<ChatSummary[]>([]);
+  const seenMessages = useRef(new Set<number>());
   const [activeChatId, setActiveChatId] = useState<number | null>(null);
   const [partnerName, setPartnerName] = useState<string | null>(null);
   const [chatUnavailableMessage, setChatUnavailableMessage] = useState<
@@ -63,6 +65,13 @@ export function useChatConversations(
 
   const handleIncomingMessage = useCallback(
     (msg: ChatMessage | ChatMessageDTO) => {
+      if (msg.id !== undefined) {
+        if (seenMessages.current.has(msg.id)) return;
+        seenMessages.current.add(msg.id);
+        if (seenMessages.current.size > 1000) {
+          seenMessages.current.delete(seenMessages.current.values().next().value!);
+        }
+      }
       if (msg.chatId !== activeChatId && msg.senderId !== currentUserId) {
         setUnreadMessages((prev) => ({
           ...prev,
@@ -177,20 +186,12 @@ export function useChatConversations(
     };
   }, [activePartnerId]);
 
-  // 4. WebSocket subscription to /user/queue/messages
-  const handleUserQueueMessage = useCallback(
-    (rawPayload: unknown) => {
-      const msg = rawPayload as ChatMessageDTO;
-      handleIncomingMessage(msg);
-    },
-    [handleIncomingMessage],
-  );
-
-  useStompSubscription(
-    currentUserId ? "/user/queue/messages" : null,
-    handleUserQueueMessage,
-    Boolean(currentUserId),
-  );
+  // A personal GraphQL stream updates the sidebar even when another chat is open.
+  useChatEvents(null, (event) => {
+    if (event.message) handleIncomingMessage(event.message);
+  }, Boolean(currentUserId), () => {
+    void chatApi.getUserChats().then(setChats).catch(console.error);
+  });
 
   // 5. WebSocket subscription to /topic/users.status
   const handleUserStatusUpdate = useCallback(

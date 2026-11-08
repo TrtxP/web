@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,6 +22,7 @@ import com.matchme.backend.user.repository.UserRepository;
 import net.datafaker.Faker;
 
 @Configuration
+@ConditionalOnProperty(name = "matchme.seed.enabled", havingValue = "true", matchIfMissing = true)
 public class DataInitializer {
 
     // Фіксований список міст замість faker.address().city(), який на кожного

@@ -3,6 +3,7 @@ import type { PrivateAggregatedProfile } from "../../entities/user/model/types.t
 import { getMyFullProfile } from "../../entities/user/api/userApi.ts";
 import { websocketService } from "../../shared/ws/websocketService.ts";
 import { CurrentUserContext } from "./CurrentUserContext.ts";
+import { disconnectGraphql } from "../../shared/api/graphqlClient.ts";
 
 export const CurrentUserProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -51,6 +52,7 @@ export const CurrentUserProvider: React.FC<{ children: React.ReactNode }> = ({
 
     return () => {
       active = false;
+      disconnectGraphql();
     };
   }, [token]);
 
