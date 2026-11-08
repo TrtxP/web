@@ -37,13 +37,12 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
         </div>
       )}
 
-      {showStatusDot && typeof isOnline === "boolean" && (
+      {showStatusDot && isOnline && (
         <span
-          className={`status ${isOnline ? "status-success" : "status-warning"}`}
-          title={isOnline ? "Online" : "Offline"}
+          className="absolute top-1 right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full shadow-sm z-10"
+          title="Online"
         />
       )}
     </div>
   );
 };
-

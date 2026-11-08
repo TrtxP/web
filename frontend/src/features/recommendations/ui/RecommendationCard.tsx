@@ -36,10 +36,12 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
           </div>
         )}
 
-        <span
-          className={`status ${status.isOnline ? "status-success" : "status-warning"}`}
-          title={status.isOnline ? "Online" : "Offline"}
-        ></span>
+        {status.isOnline && (
+          <span
+            className="absolute top-1 right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full shadow-sm z-10"
+            title="Online"
+          />
+        )}
       </div>
 
       <div className="mb-4 w-full">
@@ -91,4 +93,3 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
     </div>
   );
 };
-

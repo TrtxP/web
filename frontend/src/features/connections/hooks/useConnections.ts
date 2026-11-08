@@ -81,7 +81,7 @@ export function useConnections() {
   }, []);
 
   const handleStatusUpdate = useCallback((data: unknown) => {
-    const serverData = data as { userId: number; status: string };
+    const serverData = data as { userId?: number; id?: number; status: string };
 
     console.log(
       `Received status update in Connections: ${JSON.stringify(serverData)}`,
@@ -89,8 +89,11 @@ export function useConnections() {
 
     if (!serverData) return;
 
+    const targetUserId = Number(serverData.userId ?? serverData.id);
+    if (!targetUserId) return;
+
     const updatedStatus: UserProfileStatusUpdate = {
-      userId: serverData.userId,
+      userId: targetUserId,
       isOnline: serverData.status === "ONLINE",
       lastSeenAt: new Date().toISOString(),
     };
